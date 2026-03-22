@@ -53,15 +53,16 @@ canvas{display:block;}
     <div class="st">ATK <b id="atk">—</b></div>
     <div class="st">Arrows <b id="arr">—</b></div>
     <div class="st" style="margin-left:auto;color:#444;font-size:10px">Deepest: <b id="deep" style="color:#666">—</b></div>
-    <div class="st" style="color:#333;font-size:10px" id="ctrl">WASD · Click=Melee · E=Shoot</div>
+    <div class="st" style="color:#333;font-size:10px" id="ctrl">WASD · Click=Melee · E=Shoot · Shift=Sneak</div>
   </div>
   <div id="msg" style="top:44px;padding:3px;min-height:18px;"></div>
 
   <div class="panel dark" id="titlePanel" style="display:flex;">
     <h2 style="color:#ffd700;font-size:26px">⚔ Dungeon Crawler</h2>
     <p>Explore the labyrinth. Find the exit staircase.<br>Return to town to spend gold at shops.<br><br>
-      <b style="color:#bbb">WASD</b> Move &nbsp;·&nbsp; <b style="color:#bbb">Click</b> Melee &nbsp;·&nbsp; <b style="color:#bbb">E</b> Shoot<br>
-      <b style="color:#bbb">M</b> Toggle map</p>
+      <b style="color:#bbb">WASD</b> Move &nbsp;·&nbsp; <b style="color:#bbb">Shift</b> Sneak &nbsp;·&nbsp; <b style="color:#bbb">Click</b> Melee &nbsp;·&nbsp; <b style="color:#bbb">E</b> Shoot<br>
+      <b style="color:#bbb">M</b> Toggle map<br><br>
+      <span style="color:#555">Enemies have a forward vision cone. Approach from behind or hold Shift to sneak past. A <b style="color:#ffcc00">?</b> means they suspect you — freeze or retreat.</span></p>
     <button class="btn gold" id="titleBtn">Enter Town</button>
   </div>
 
@@ -305,18 +306,18 @@ function generateMap(floor){
 }
 
 function carve(x1,y1,x2,y2,map){
-  // L-shaped: horizontal then vertical
+  // L-shaped corridor, 3 tiles wide for comfortable navigation
   const sx=x1<x2?1:-1, sy=y1<y2?1:-1;
+  function stamp(x,y){
+    for(let oy=-1;oy<=1;oy++) for(let ox=-1;ox<=1;ox++){
+      const tx=x+ox,ty=y+oy;
+      if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H) map[ty][tx]=1;
+    }
+  }
   let x=x1,y=y1;
-  while(x!==x2){
-    if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H) map[y][x]=1;
-    x+=sx;
-  }
-  while(y!==y2){
-    if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H) map[y][x]=1;
-    y+=sy;
-  }
-  if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H) map[y][x]=1;
+  while(x!==x2){stamp(x,y);x+=sx;}
+  while(y!==y2){stamp(x,y);y+=sy;}
+  stamp(x,y);
 }
 
 function farthestRoom(rooms,startRoom,map){
@@ -519,8 +520,16 @@ function spawnEnemy(x,y,floor){
 
 function mkEnemy(type,x,y,floor){
   const f=floor||G.floor;
+  const startAng=Math.random()*Math.PI*2;
+  // aiState: 'patrol' | 'suspect' | 'chase' | 'search'
+  // suspectT: countdown while in suspect phase before full alert
+  // searchX/Y: last-seen player position to walk toward
+  // searchT: countdown for search phase
+  // facing: angle enemy is looking (used for vision cone)
   const b={x,y,vx:0,vy:0,tier:type,stateT:0,shootT:80+Math.random()*60,
-           alertT:0,patrolDx:(Math.random()>.5?1:-1),patrolDy:0,patrolT:0};
+           patrolDx:Math.cos(startAng),patrolDy:Math.sin(startAng),patrolT:Math.floor(Math.random()*80),
+           aiState:'patrol',suspectT:0,searchX:x,searchY:y,searchT:0,
+           facing:startAng};
   switch(type){
     case 'charger': return{...b,w:14,h:14,hp:28+f*5,maxHp:28+f*5,spd:1.8,atk:13,canShoot:false,color:'#cc6600',chargeVx:0,chargeVy:0,chargeT:0};
     case 'sniper':  return{...b,w:10,h:10,hp:14+f*3,maxHp:14+f*3,spd:.3,atk:22,canShoot:true,shootInt:150,color:'#2255cc'};
@@ -586,7 +595,9 @@ function doMelee(){
       const ea=Math.atan2(ey-(p.y+p.h/2),ex-(p.x+p.w/2));
       if(Math.abs(((ea-ang)+Math.PI*3)%(Math.PI*2)-Math.PI)<1.2){
         e.hp-=p.atk;e.vx=Math.cos(ang)*4;e.vy=Math.sin(ang)*4;
-        e.alertT=120;
+        e.aiState='chase';e.searchX=px;e.searchY=py;
+        // Noise: alert nearby enemies too
+        G.enemies.forEach(n=>{if(n!==e&&Math.hypot((n.x+n.w/2)-ecx,(n.y+n.h/2)-ecy)<T*6)n.aiState='suspect',n.suspectT=30,n.searchX=px,n.searchY=py;});
         burst(ex,ey,'#ff4444',5);hit=true;
         if(p.items.includes('vampire'))p.hp=Math.min(p.hp+3,p.maxHp);
       }
@@ -617,9 +628,12 @@ function updateDungeon(){
   const dmgMul=p.items.includes('tough')?.8:1;
 
   // Player move
+  const isSneaking=G.keys['Shift']||G.keys['shift'];
   const dx=((G.keys['d']||G.keys['D']||G.keys['ArrowRight'])?1:0)-((G.keys['a']||G.keys['A']||G.keys['ArrowLeft'])?1:0);
   const dy=((G.keys['s']||G.keys['S']||G.keys['ArrowDown'])?1:0)-((G.keys['w']||G.keys['W']||G.keys['ArrowUp'])?1:0);
-  if(dx||dy){const l=Math.hypot(dx,dy);moveEntity(p,dx/l*p.spd,dy/l*p.spd);}
+  const moveSpd=isSneaking?p.spd*0.45:p.spd;
+  if(dx||dy){const l=Math.hypot(dx,dy);moveEntity(p,dx/l*moveSpd,dy/l*moveSpd);}
+  G.isSneaking=isSneaking;
 
   if(p.invincible>0)p.invincible--;
   if(p.meleeCd>0)p.meleeCd--;
@@ -637,50 +651,112 @@ function updateDungeon(){
 
   // Enemies
   const px=p.x+p.w/2, py=p.y+p.h/2;
+  const playerDetectRange=isSneaking?T*4:T*7;
+
   G.enemies.forEach(e=>{
     const ecx=e.x+e.w/2,ecy=e.y+e.h/2;
-    const distToPlayer=Math.hypot(px-ecx,py-ecy);
-    const canSeePlayer=distToPlayer<T*8&&hasLOS(Math.floor(ecx/T),Math.floor(ecy/T),ptx,pty,map);
+    const toPlayerDist=Math.hypot(px-ecx,py-ecy);
+    const toPlayerAng=Math.atan2(py-ecy,px-ecx);
+    const etx=Math.floor(ecx/T),ety=Math.floor(ecy/T);
 
-    if(canSeePlayer)e.alertT=Math.max(e.alertT,90);
-    else if(e.alertT>0)e.alertT--;
+    // Can enemy actually see player?
+    // Criteria: within range, has LOS, and player is within forward vision cone (±70°)
+    const inRange=toPlayerDist<playerDetectRange;
+    const inLOS=inRange&&hasLOS(etx,ety,ptx,pty,map);
+    // Vision cone: bosses/chargers have wide cone, snipers narrow but long range
+    const coneHalf=e.tier==='sniper'?0.55:e.tier==='boss'?Math.PI:1.22; // radians
+    const sniperRange=e.tier==='sniper'?T*14:playerDetectRange;
+    const actualRange=e.tier==='sniper'?Math.min(toPlayerDist,sniperRange):toPlayerDist;
+    const angleDiff=Math.abs(((toPlayerAng-e.facing)+Math.PI*3)%(Math.PI*2)-Math.PI);
+    const inCone=angleDiff<coneHalf;
+    // Backstab: approaching from behind (outside cone) still works for player
+    const canSeePlayer=inLOS&&(actualRange<(e.tier==='sniper'?sniperRange:playerDetectRange))&&(inCone||e.aiState==='chase');
 
-    const ang=Math.atan2(py-ecy,px-ecx);
+    // ── State machine ──────────────────────────────────────────────
+    if(canSeePlayer){
+      if(e.aiState==='patrol'){
+        // First spotted: enter suspect phase (gives player reaction time)
+        e.aiState='suspect';
+        e.suspectT=e.tier==='charger'?20:40; // charger reacts faster
+      } else if(e.aiState==='suspect'){
+        e.suspectT--;
+        if(e.suspectT<=0){e.aiState='chase';}
+      } else {
+        e.aiState='chase';
+      }
+      // Update last-seen position
+      e.searchX=px; e.searchY=py;
+    } else {
+      if(e.aiState==='chase'){
+        // Lost sight: go search last-seen position
+        e.aiState='search';
+        e.searchT=180; // ~3 seconds of searching
+      } else if(e.aiState==='search'){
+        e.searchT--;
+        if(e.searchT<=0){e.aiState='patrol';}
+      } else if(e.aiState==='suspect'){
+        // Lost sight while suspicious: go back to patrol quickly
+        e.suspectT-=3;
+        if(e.suspectT<=0){e.aiState='patrol';}
+      }
+    }
 
+    const ang=Math.atan2(py-ecy,px-ecx); // toward player
+    const searchAng=Math.atan2(e.searchY-ecy,e.searchX-ecx);
+
+    // ── Movement per state ─────────────────────────────────────────
     if(e.tier==='boss'){
       const sp=e.hp/e.maxHp<.5?1.5:.9;
       e.vx=(e.vx+Math.cos(ang)*.35)*.84;e.vy=(e.vy+Math.sin(ang)*.35)*.84;
       const cs=Math.hypot(e.vx,e.vy);if(cs>sp){e.vx=e.vx/cs*sp;e.vy=e.vy/cs*sp;}
       if(!e.phase2&&e.hp/e.maxHp<.5){e.phase2=true;setMsg('The boss enrages!',2000);}
       e.minionT--;if(e.minionT<=0){e.minionT=e.phase2?100:200;if(G.enemies.length<14)G.enemies.push(mkEnemy('minion',ecx+20,ecy+20));}
-    } else if(e.alertT>0){
-      // Alerted: chase
+      e.facing=ang;
+    } else if(e.aiState==='chase'){
       if(e.tier==='charger'){
         e.stateT--;
         if(e.chargeT>0){e.chargeT--;e.vx=e.chargeVx*3;e.vy=e.chargeVy*3;}
         else if(e.stateT<=0){e.chargeVx=Math.cos(ang);e.chargeVy=Math.sin(ang);e.chargeT=14;e.stateT=60+Math.random()*40;}
         else{e.vx=(e.vx+Math.cos(ang)*.2)*.87;e.vy=(e.vy+Math.sin(ang)*.2)*.87;}
       }else if(e.tier==='sniper'){
-        if(distToPlayer<T*5){e.vx=(e.vx-Math.cos(ang)*.3)*.85;e.vy=(e.vy-Math.sin(ang)*.3)*.85;}
+        if(toPlayerDist<T*5){e.vx=(e.vx-Math.cos(ang)*.3)*.85;e.vy=(e.vy-Math.sin(ang)*.3)*.85;}
         else{e.vx*=.92;e.vy*=.92;}
       }else{
         e.vx=(e.vx+Math.cos(ang)*.25)*.88;e.vy=(e.vy+Math.sin(ang)*.25)*.88;
       }
-    }else{
-      // Patrol: wander slowly
+      e.facing=ang;
+    } else if(e.aiState==='suspect'){
+      // Suspicious: slow turn toward player, hesitate
+      e.vx*=.7;e.vy*=.7;
+      // Slowly turn to face player
+      const facingDiff=((toPlayerAng-e.facing)+Math.PI*3)%(Math.PI*2)-Math.PI;
+      e.facing+=facingDiff*.08;
+    } else if(e.aiState==='search'){
+      // Walk toward last-seen position
+      const distToSearch=Math.hypot(e.searchX-ecx,e.searchY-ecy);
+      if(distToSearch>T){
+        e.vx=(e.vx+Math.cos(searchAng)*.2)*.85;e.vy=(e.vy+Math.sin(searchAng)*.2)*.85;
+        e.facing=searchAng;
+      } else {
+        // Arrived: look around slowly
+        e.vx*=.5;e.vy*=.5;
+        e.facing+=.025;
+      }
+    } else {
+      // Patrol: wander slowly, update facing from movement direction
       e.patrolT--;
       if(e.patrolT<=0){
-        e.patrolT=40+Math.random()*80;
-        const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-        const d=dirs[Math.floor(Math.random()*4)];
-        e.patrolDx=d[0];e.patrolDy=d[1];
+        e.patrolT=50+Math.random()*100;
+        const a=Math.random()*Math.PI*2;
+        e.patrolDx=Math.cos(a);e.patrolDy=Math.sin(a);
       }
-      e.vx=e.patrolDx*e.spd*.4;e.vy=e.patrolDy*e.spd*.4;
+      e.vx=e.patrolDx*e.spd*.35;e.vy=e.patrolDy*e.spd*.35;
+      if(Math.abs(e.vx)+Math.abs(e.vy)>0.01) e.facing=Math.atan2(e.vy,e.vx);
     }
 
     moveEntity(e,e.vx,e.vy);
 
-    if(e.canShoot&&e.alertT>0){
+    if(e.canShoot&&e.aiState==='chase'){
       e.shootT--;
       if(e.shootT<=0){
         e.shootT=(e.shootInt||100)+Math.random()*40;
@@ -701,7 +777,7 @@ function updateDungeon(){
     if(pr.owner==='player'){
       for(let i=G.enemies.length-1;i>=0;i--){
         if(ov(pr,G.enemies[i])){
-          G.enemies[i].hp-=pr.dmg;G.enemies[i].alertT=120;
+          G.enemies[i].hp-=pr.dmg;G.enemies[i].aiState='chase';G.enemies[i].searchX=px;G.enemies[i].searchY=py;
           if(pr.explosive){snd('explode');burst(pr.x,pr.y,'#ff8800',12,4);G.enemies.forEach(e2=>{if(Math.hypot((e2.x+e2.w/2)-pr.x,(e2.y+e2.h/2)-pr.y)<T*3)e2.hp-=pr.dmg*.5;});}
           else burst(pr.x,pr.y,'#ffcc00',4,2);
           snd('hit');return false;
@@ -967,7 +1043,13 @@ function drawDungeon(){
   const wx=G.mouse.x+G.cam.x, wy=G.mouse.y+G.cam.y-62;
   const wAng=Math.atan2(wy-(p.y+p.h/2),wx-(p.x+p.w/2));
   const flash=p.invincible>0&&Math.floor(p.invincible/3)%2===0;
+  if(G.isSneaking)ctx.globalAlpha=0.65;
   drawPlayer(p,wAng,flash);
+  ctx.globalAlpha=1;
+  if(G.isSneaking){
+    ctx.font='9px monospace';ctx.textAlign='center';ctx.fillStyle='rgba(150,220,255,0.7)';
+    ctx.fillText('SNEAKING',p.x+p.w/2,p.y-10);
+  }
 
   if(G.meleeFlash&&G.meleeFlash.timer>0){
     ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2);ctx.rotate(G.meleeFlash.angle);
@@ -1011,12 +1093,34 @@ function drawMinimap(){
 
 function drawEnemy(e){
   const cx=e.x+e.w/2,cy=e.y+e.h/2,r=e.w/2,pct=Math.max(0,e.hp/e.maxHp);
-  if(e.alertT>0){
-    // Alert indicator
-    ctx.fillStyle=e.alertT>60?'#ff4400':'#ffaa00';
-    ctx.font='8px monospace';ctx.textAlign='center';
-    ctx.fillText('!',cx,e.y-e.h/2-2);
+
+  // Vision cone (only for non-boss patrol/suspect)
+  if(e.tier!=='boss'&&e.aiState!=='chase'){
+    const coneHalf=e.tier==='sniper'?0.55:1.22;
+    const coneRange=(e.tier==='sniper'?T*14:T*7)*0.9;
+    const coneAlpha=e.aiState==='suspect'?0.25:0.10;
+    ctx.save();
+    ctx.globalAlpha=coneAlpha;
+    ctx.fillStyle=e.aiState==='suspect'?'#ffaa00':'#ffff88';
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,coneRange,e.facing-coneHalf,e.facing+coneHalf);
+    ctx.closePath();ctx.fill();
+    ctx.restore();
   }
+
+  // State indicator above enemy
+  if(e.aiState==='suspect'){
+    ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillStyle='#ffcc00';ctx.fillText('?',cx,e.y-r-2);
+  } else if(e.aiState==='chase'){
+    ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillStyle='#ff3300';ctx.fillText('!',cx,e.y-r-2);
+  } else if(e.aiState==='search'){
+    ctx.font='bold 9px monospace';ctx.textAlign='center';
+    ctx.fillStyle='#aa8800';ctx.fillText('?',cx,e.y-r-2);
+  }
+
   if(e.tier==='boss'){
     ctx.fillStyle='#7a0a0a';roundRect(e.x,e.y,e.w,e.h,4);ctx.fill();
     ctx.fillStyle='#aa1111';roundRect(e.x+2,e.y+2,e.w-4,e.h/2,3);ctx.fill();
@@ -1025,29 +1129,49 @@ function drawEnemy(e){
     ctx.fillStyle='#550000';ctx.beginPath();ctx.moveTo(e.x+5,e.y);ctx.lineTo(e.x+2,e.y-8);ctx.lineTo(e.x+10,e.y);ctx.fill();ctx.beginPath();ctx.moveTo(e.x+e.w-5,e.y);ctx.lineTo(e.x+e.w-2,e.y-8);ctx.lineTo(e.x+e.w-10,e.y);ctx.fill();
     if(e.phase2){ctx.strokeStyle='rgba(255,60,0,.4)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,r+5+Math.sin(Date.now()/120)*2,0,Math.PI*2);ctx.stroke();}
   }else if(e.tier==='charger'){
-    ctx.fillStyle='#993300';ctx.beginPath();ctx.moveTo(e.x+e.w,cy);ctx.lineTo(e.x,e.y);ctx.lineTo(e.x,e.y+e.h);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#cc5500';ctx.beginPath();ctx.moveTo(e.x+e.w-3,cy);ctx.lineTo(e.x+2,e.y+2);ctx.lineTo(e.x+2,e.y+e.h-2);ctx.closePath();ctx.fill();
-    if(e.chargeT>0){ctx.fillStyle='rgba(255,200,0,.5)';ctx.beginPath();ctx.arc(cx,cy,r+3,0,Math.PI*2);ctx.fill();}
+    // Draw facing the patrol direction
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(e.facing);
+    ctx.fillStyle='#993300';ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(-r,-r);ctx.lineTo(-r,r);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#cc5500';ctx.beginPath();ctx.moveTo(r-3,0);ctx.lineTo(-r+3,-r+3);ctx.lineTo(-r+3,r-3);ctx.closePath();ctx.fill();
+    if(e.chargeT>0){ctx.fillStyle='rgba(255,200,0,.5)';ctx.beginPath();ctx.arc(0,0,r+4,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
   }else if(e.tier==='sniper'){
-    ctx.fillStyle='#112288';ctx.beginPath();ctx.moveTo(cx,e.y);ctx.lineTo(e.x+e.w,cy);ctx.lineTo(cx,e.y+e.h);ctx.lineTo(e.x,cy);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#3366dd';ctx.beginPath();ctx.moveTo(cx,e.y+2);ctx.lineTo(e.x+e.w-2,cy);ctx.lineTo(cx,e.y+e.h-2);ctx.lineTo(e.x+2,cy);ctx.closePath();ctx.fill();
-    if(e.alertT>0){ctx.strokeStyle='rgba(100,180,255,.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
-      const p2=G.player;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(p2.x+p2.w/2,p2.y+p2.h/2);ctx.stroke();ctx.setLineDash([]);}
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(e.facing);
+    ctx.fillStyle='#112288';ctx.beginPath();ctx.moveTo(0,-r);ctx.lineTo(r,0);ctx.lineTo(0,r);ctx.lineTo(-r,0);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#3366dd';ctx.beginPath();ctx.moveTo(0,-r+2);ctx.lineTo(r-2,0);ctx.lineTo(0,r-2);ctx.lineTo(-r+2,0);ctx.closePath();ctx.fill();
+    // Barrel
+    ctx.fillStyle='#88aaff';ctx.fillRect(r-1,-1,6,2);
+    if(e.aiState==='chase'||e.aiState==='suspect'){
+      ctx.strokeStyle='rgba(100,180,255,.35)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(r+5,0);ctx.lineTo(T*12,0);ctx.stroke();ctx.setLineDash([]);
+    }
+    ctx.restore();
   }else if(e.tier==='splitter'){
     ctx.fillStyle='#1f5512';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#2d7a1a';ctx.beginPath();ctx.arc(cx-1,cy-1,r-3,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,e.y+2);ctx.lineTo(cx,e.y+e.h-2);ctx.stroke();ctx.beginPath();ctx.moveTo(e.x+2,cy);ctx.lineTo(e.x+e.w-2,cy);ctx.stroke();
+    // Eyes facing direction
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(e.facing);
+    ctx.fillStyle='#88ff44';ctx.beginPath();ctx.arc(r*.4,-r*.3,1.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(r*.4,r*.3,1.5,0,Math.PI*2);ctx.fill();
+    ctx.restore();
   }else if(e.tier==='elite'){
-    ctx.fillStyle='#551199';ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3-Math.PI/6;ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}ctx.closePath();ctx.fill();
-    ctx.fillStyle='#8833cc';ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3-Math.PI/6;ctx.lineTo(cx+Math.cos(a)*(r-3),cy+Math.sin(a)*(r-3));}ctx.closePath();ctx.fill();
+    ctx.fillStyle='#551199';ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+e.facing;ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}ctx.closePath();ctx.fill();
+    ctx.fillStyle='#8833cc';ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+e.facing;ctx.lineTo(cx+Math.cos(a)*(r-3),cy+Math.sin(a)*(r-3));}ctx.closePath();ctx.fill();
     ctx.strokeStyle='rgba(180,100,255,.4)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,r+3+Math.sin(Date.now()/200)*1.5,0,Math.PI*2);ctx.stroke();
+    // Facing eye
+    ctx.fillStyle='#dd88ff';ctx.beginPath();ctx.arc(cx+Math.cos(e.facing)*r*.6,cy+Math.sin(e.facing)*r*.6,2.5,0,Math.PI*2);ctx.fill();
   }else if(e.tier==='minion'){
     ctx.fillStyle='#224422';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#44aa33';ctx.beginPath();ctx.arc(cx,cy,r-2,0,Math.PI*2);ctx.fill();
   }else{
+    // Basic: show facing with eye direction
     ctx.fillStyle='#771111';roundRect(e.x,e.y,e.w,e.h,3);ctx.fill();
     ctx.fillStyle='#aa2222';roundRect(e.x+2,e.y+2,e.w-4,e.h/2-1,2);ctx.fill();
-    ctx.fillStyle='#ff5555';ctx.beginPath();ctx.arc(cx-3,cy-1,2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(cx+3,cy-1,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ff5555';
+    const ex2=cx+Math.cos(e.facing)*3, ey2=cy-2+Math.sin(e.facing)*2;
+    ctx.beginPath();ctx.arc(ex2-1.5,ey2,2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(ex2+1.5,ey2,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#880000';ctx.fillRect(cx-4,cy+3,8,1.5);
   }
   // HP bar
   ctx.fillStyle='rgba(0,0,0,.6)';roundRect(e.x,e.y-7,e.w,4,2);ctx.fill();

@@ -529,7 +529,9 @@ function mkEnemy(type,x,y,floor){
   // searchT: countdown for search phase
   // facing: angle enemy is looking (used for vision cone)
   const b={x,y,vx:0,vy:0,tier:type,stateT:0,shootT:80+Math.random()*60,
-           patrolDx:Math.cos(startAng),patrolDy:Math.sin(startAng),patrolT:Math.floor(Math.random()*80),
+           patrolDx:Math.cos(startAng),patrolDy:Math.sin(startAng),
+           patrolT:Math.floor(80+Math.random()*120), // start with a pause so first move is deliberate
+           patrolTargetAngle:startAng,
            aiState:'patrol',suspectT:0,searchX:x,searchY:y,searchT:0,
            facing:startAng};
   switch(type){
@@ -707,6 +709,15 @@ function updateDungeon(){
     const ang=Math.atan2(py-ecy,px-ecx); // toward player
     const searchAng=Math.atan2(e.searchY-ecy,e.searchX-ecx);
 
+    // ── Smooth turn helper ─────────────────────────────────────────
+    // Always rotate facing toward a target angle at a capped rate
+    // turnRate: radians per frame. Boss/chase turns fast; patrol turns slow.
+    function turnToward(targetAng, turnRate){
+      let diff=((targetAng-e.facing)+Math.PI*3)%(Math.PI*2)-Math.PI;
+      const step=Math.min(Math.abs(diff),turnRate)*Math.sign(diff);
+      e.facing+=step;
+    }
+
     // ── Movement per state ─────────────────────────────────────────
     if(e.tier==='boss'){
       const sp=e.hp/e.maxHp<.5?1.5:.9;
@@ -714,7 +725,7 @@ function updateDungeon(){
       const cs=Math.hypot(e.vx,e.vy);if(cs>sp){e.vx=e.vx/cs*sp;e.vy=e.vy/cs*sp;}
       if(!e.phase2&&e.hp/e.maxHp<.5){e.phase2=true;setMsg('The boss enrages!',2000);}
       e.minionT--;if(e.minionT<=0){e.minionT=e.phase2?100:200;if(G.enemies.length<14)G.enemies.push(mkEnemy('minion',ecx+20,ecy+20));}
-      e.facing=ang;
+      turnToward(ang, 0.12);
     } else if(e.aiState==='chase'){
       if(e.tier==='charger'){
         e.stateT--;
@@ -727,34 +738,61 @@ function updateDungeon(){
       }else{
         e.vx=(e.vx+Math.cos(ang)*.25)*.88;e.vy=(e.vy+Math.sin(ang)*.25)*.88;
       }
-      e.facing=ang;
+      turnToward(ang, 0.15);
     } else if(e.aiState==='suspect'){
-      // Suspicious: slow turn toward player, hesitate
+      // Hesitate in place, slowly turn toward where they sensed the player
       e.vx*=.7;e.vy*=.7;
-      // Slowly turn to face player
-      const facingDiff=((toPlayerAng-e.facing)+Math.PI*3)%(Math.PI*2)-Math.PI;
-      e.facing+=facingDiff*.08;
+      turnToward(toPlayerAng, 0.04); // very slow — gives player time to react
     } else if(e.aiState==='search'){
-      // Walk toward last-seen position
       const distToSearch=Math.hypot(e.searchX-ecx,e.searchY-ecy);
       if(distToSearch>T){
         e.vx=(e.vx+Math.cos(searchAng)*.2)*.85;e.vy=(e.vy+Math.sin(searchAng)*.2)*.85;
-        e.facing=searchAng;
+        turnToward(searchAng, 0.08);
       } else {
-        // Arrived: look around slowly
+        // Arrived: sweep gaze slowly left and right
         e.vx*=.5;e.vy*=.5;
-        e.facing+=.025;
+        e.facing+=0.018;
       }
     } else {
-      // Patrol: wander slowly, update facing from movement direction
-      e.patrolT--;
-      if(e.patrolT<=0){
-        e.patrolT=50+Math.random()*100;
-        const a=Math.random()*Math.PI*2;
-        e.patrolDx=Math.cos(a);e.patrolDy=Math.sin(a);
+      // ── Patrol ────────────────────────────────────────────────────
+      // Pick a new target angle only when the current one is (nearly) reached
+      // and a pause timer has expired. This gives long, readable straight legs.
+      if(!e.patrolTargetAngle) e.patrolTargetAngle=e.facing;
+
+      const angleDiffToTarget=Math.abs(((e.patrolTargetAngle-e.facing)+Math.PI*3)%(Math.PI*2)-Math.PI);
+      const reachedTarget=angleDiffToTarget<0.05;
+
+      if(reachedTarget){
+        // Count down pause before picking next direction
+        e.patrolT--;
+        if(e.patrolT<=0){
+          // Pick new target angle: prefer turning ±60-120° rather than random
+          // so movement looks like deliberate route-walking, not drunk wandering
+          const turn=(Math.random()<.5?1:-1)*(Math.PI*.33+Math.random()*Math.PI*.5);
+          e.patrolTargetAngle=e.facing+turn;
+          e.patrolT=80+Math.floor(Math.random()*120); // pause 80-200 frames before next turn
+        }
+        // While paused: stand still or drift gently forward
+        const fwd=e.patrolT>60?0:.3; // brief still pause then start walking
+        e.vx=Math.cos(e.patrolTargetAngle)*e.spd*fwd;
+        e.vy=Math.sin(e.patrolTargetAngle)*e.spd*fwd;
+      } else {
+        // Turning: slow down, rotate toward target, then walk when facing right way
+        turnToward(e.patrolTargetAngle, 0.025); // slow deliberate turn
+        const progress=1-angleDiffToTarget/Math.PI;
+        e.vx=Math.cos(e.facing)*e.spd*.35*progress;
+        e.vy=Math.sin(e.facing)*e.spd*.35*progress;
       }
-      e.vx=e.patrolDx*e.spd*.35;e.vy=e.patrolDy*e.spd*.35;
-      if(Math.abs(e.vx)+Math.abs(e.vy)>0.01) e.facing=Math.atan2(e.vy,e.vx);
+
+      // Wall bounce: if we hit a wall, pick a new target away from it
+      const wouldHitX=tileCollide({x:e.x+e.vx*4,y:e.y,w:e.w,h:e.h},map);
+      const wouldHitY=tileCollide({x:e.x,y:e.y+e.vy*4,w:e.w,h:e.h},map);
+      if(wouldHitX||wouldHitY){
+        // Reflect and add slight random offset so they don't oscillate
+        if(wouldHitX) e.patrolTargetAngle=Math.PI-e.patrolTargetAngle+(Math.random()-.5)*.5;
+        if(wouldHitY) e.patrolTargetAngle=-e.patrolTargetAngle+(Math.random()-.5)*.5;
+        e.patrolT=30; // short pause after bounce
+      }
     }
 
     moveEntity(e,e.vx,e.vy);

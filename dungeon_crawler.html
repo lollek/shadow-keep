@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dungeon Crawler</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: monospace; }
+#wrapper { position: relative; }
+#gameCanvas { display: block; background: #1a1a2e; }
+#ui { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
+#hud { display: flex; align-items: center; gap: 16px; padding: 10px 14px; background: rgba(0,0,0,0.7); flex-wrap: wrap; }
+.hp-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.hp-bar-bg { width: 120px; height: 10px; background: #333; border-radius: 5px; overflow: hidden; }
+.hp-bar-fill { height: 100%; background: #e05; border-radius: 5px; transition: width 0.1s; }
+.stat { font: 500 13px monospace; color: #ccc; }
+.stat span { color: #fff; }
+#msgBox { text-align: center; padding: 6px; font: 500 13px monospace; color: #ffd700; min-height: 22px; }
+#overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.88); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; pointer-events: all; }
+#overlay h2 { font: 500 26px monospace; color: #fff; }
+#overlay p { font: 400 14px monospace; color: #aaa; text-align: center; max-width: 340px; line-height: 1.7; }
+.btn { font: 500 14px monospace; padding: 10px 28px; background: transparent; border: 1px solid #555; color: #fff; border-radius: 6px; cursor: pointer; }
+.btn:hover { background: rgba(255,255,255,0.08); }
+#lootPanel { position: absolute; inset: 0; background: rgba(0,0,0,0.92); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; pointer-events: all; }
+#lootPanel h2 { font: 500 20px monospace; color: #ffd700; }
+.loot-grid { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.loot-card { width: 150px; background: #1e1e2e; border: 1px solid #444; border-radius: 8px; padding: 16px 12px; cursor: pointer; text-align: center; font-family: monospace; }
+.loot-card:hover { border-color: #ffd700; background: #2a2a3e; }
+.loot-icon { font-size: 30px; margin-bottom: 8px; }
+.loot-name { font-size: 13px; color: #fff; font-weight: 500; margin-bottom: 6px; }
+.loot-desc { font-size: 11px; color: #888; line-height: 1.5; }
+.rarity-common { border-top: 2px solid #aaa; }
+.rarity-rare { border-top: 2px solid #4af; }
+.rarity-epic { border-top: 2px solid #a4f; }
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui">
+    <div id="hud">
+      <div class="hp-bar-wrap">
+        <span class="stat" style="color:#e05">HP</span>
+        <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpFill" style="width:100%"></div></div>
+        <span class="stat" id="hpText">100/100</span>
+      </div>
+      <div class="stat">Room <span id="roomNum">1</span></div>
+      <div class="stat">Gold <span id="goldAmt">0</span></div>
+      <div class="stat">ATK <span id="atkStat">10</span></div>
+      <div class="stat">Arrows <span id="arrowCount">10</span></div>
+      <div class="stat" style="color:#666; margin-left:auto; font-size:11px;">WASD Move &nbsp;|&nbsp; Click Melee &nbsp;|&nbsp; E Shoot</div>
+    </div>
+    <div id="msgBox"></div>
+  </div>
+  <div id="overlay">
+    <h2 id="overlayTitle">Dungeon Crawler</h2>
+    <p id="overlayMsg">Survive the dungeon. Clear rooms to progress.<br><br>
+      <b style="color:#fff">WASD</b> or Arrow Keys — Move<br>
+      <b style="color:#fff">Mouse</b> — Aim<br>
+      <b style="color:#fff">Click</b> — Melee swing<br>
+      <b style="color:#fff">E</b> — Shoot arrow<br><br>
+      <span style="color:#666">Tip: Clear all enemies to open the exit door.</span>
+    </p>
+    <button class="btn" id="startBtn">Start Game</button>
+  </div>
+  <div id="lootPanel">
+    <h2>Choose your reward</h2>
+    <p style="font:400 12px monospace; color:#666; margin-top:-8px;">Pick one item to carry into the next room</p>
+    <div class="loot-grid" id="lootGrid"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const TILE = 32;
+
+function resize() {
+  const W = Math.min(window.innerWidth - 20, 800);
+  const H = Math.min(window.innerHeight - 20, 580);
+  canvas.width = W;
+  canvas.height = H;
+  document.getElementById('wrapper').style.width = W + 'px';
+}
+resize();
+window.addEventListener('resize', () => { resize(); if (G) buildRoom(); });
+
+let G = null;
+let loopRunning = false;
+
+function initGame() {
+  G = {
+    roomNum: 1,
+    player: {
+      x: 200, y: 200, w: 24, h: 24,
+      hp: 100, maxHp: 100, spd: 3,
+      atk: 10, arrows: 10,
+      gold: 0,
+      invincible: 0,
+      meleeCooldown: 0,
+      arrowCooldown: 0,
+    },
+    enemies: [],
+    projectiles: [],
+    particles: [],
+    doorOpen: false,
+    door: null,
+    keys: {},
+    mouse: { x: 400, y: 300 },
+    msg: '',
+    msgTimer: 0,
+    roomCleared: false,
+    state: 'playing',
+    walls: [],
+    roomW: 0, roomH: 0,
+    meleeFlash: null,
+  };
+  buildRoom();
+  spawnEnemies();
+}
+
+function getPlayArea() {
+  return { W: canvas.width, H: canvas.height - 60 };
+}
+
+function buildRoom() {
+  if (!G) return;
+  const { W, H } = getPlayArea();
+  const p = G.player;
+  G.roomW = W; G.roomH = H;
+  p.x = W / 2; p.y = H / 2;
+  G.walls = [];
+
+  const m = TILE;
+  G.walls.push({ x: 0,   y: 0,   w: W,  h: m   });
+  G.walls.push({ x: 0,   y: H-m, w: W,  h: m   });
+  G.walls.push({ x: 0,   y: 0,   w: m,  h: H   });
+  G.walls.push({ x: W-m, y: 0,   w: m,  h: H   });
+
+  const pillarCount = 2 + Math.min(G.roomNum, 5);
+  for (let i = 0; i < pillarCount; i++) {
+    const px = m*2 + Math.random() * (W - m*4);
+    const py = m*2 + Math.random() * (H - m*4);
+    if (Math.hypot(px - p.x, py - p.y) > 90) {
+      G.walls.push({ x: px-16, y: py-16, w: 32, h: 32 });
+    }
+  }
+
+  G.door = { x: W/2 - 24, y: H - m, w: 48, h: m };
+  G.doorOpen = false;
+  G.projectiles = [];
+  G.particles = [];
+  G.roomCleared = false;
+  G.meleeFlash = null;
+}
+
+function spawnEnemies() {
+  const { W, H } = getPlayArea();
+  const m = TILE;
+  const count = 2 + G.roomNum + Math.floor(G.roomNum * 0.4);
+  G.enemies = [];
+  for (let i = 0; i < count; i++) {
+    let ex, ey, tries = 0;
+    do {
+      ex = m*2 + Math.random() * (W - m*4);
+      ey = m*2 + Math.random() * (H - m*4);
+      tries++;
+    } while (Math.hypot(ex - G.player.x, ey - G.player.y) < 130 && tries < 40);
+    const isElite = G.roomNum >= 5 && Math.random() < 0.3;
+    G.enemies.push({
+      x: ex, y: ey, w: 22, h: 22,
+      hp: isElite ? 40 + G.roomNum*8 : 20 + G.roomNum*4,
+      maxHp: isElite ? 40 + G.roomNum*8 : 20 + G.roomNum*4,
+      spd: isElite ? 1.3 : 0.8 + G.roomNum*0.08,
+      atk: isElite ? 15 : 8,
+      shootTimer: 60 + Math.random()*80,
+      canShoot: G.roomNum >= 3 && Math.random() < 0.4,
+      tier: isElite ? 'elite' : 'basic',
+      vx: 0, vy: 0,
+    });
+  }
+}
+
+const LOOT_POOL = [
+  { name: 'Iron Sword',    icon: '⚔️',  desc: '+8 attack damage',      rarity: 'common', apply: p => p.atk += 8 },
+  { name: 'Quiver',        icon: '🏹',  desc: '+15 arrows',             rarity: 'common', apply: p => p.arrows += 15 },
+  { name: 'Bandage',       icon: '❤️',  desc: '+30 max HP, +30 heal',   rarity: 'common', apply: p => { p.maxHp += 30; p.hp = Math.min(p.hp+30, p.maxHp); } },
+  { name: 'Speed Potion',  icon: '💨',  desc: '+0.8 movement speed',    rarity: 'common', apply: p => p.spd += 0.8 },
+  { name: 'Steel Blade',   icon: '🗡️',  desc: '+18 attack damage',      rarity: 'rare',   apply: p => p.atk += 18 },
+  { name: 'Swift Boots',   icon: '👟',  desc: '+1.5 movement speed',    rarity: 'rare',   apply: p => p.spd += 1.5 },
+  { name: 'Magic Quiver',  icon: '✨',  desc: '+35 arrows',             rarity: 'rare',   apply: p => p.arrows += 35 },
+  { name: 'Warrior Heart', icon: '💪',  desc: '+60 max HP, full heal',  rarity: 'rare',   apply: p => { p.maxHp += 60; p.hp = p.maxHp; } },
+  { name: 'Dragon Sword',  icon: '🔥',  desc: '+35 attack damage',      rarity: 'epic',   apply: p => p.atk += 35 },
+  { name: 'Amulet of Life',icon: '💎',  desc: '+80 max HP, full heal',  rarity: 'epic',   apply: p => { p.maxHp += 80; p.hp = p.maxHp; } },
+  { name: 'Infinity Bag',  icon: '🎒',  desc: '+60 arrows, +20 ATK',    rarity: 'epic',   apply: p => { p.arrows += 60; p.atk += 20; } },
+];
+
+function showLoot() {
+  G.state = 'loot';
+  const panel = document.getElementById('lootPanel');
+  const grid = document.getElementById('lootGrid');
+  panel.style.display = 'flex';
+  grid.innerHTML = '';
+  const pool = [...LOOT_POOL];
+  for (let i = 0; i < 3; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const item = pool.splice(idx, 1)[0];
+    const card = document.createElement('div');
+    card.className = 'loot-card rarity-' + item.rarity;
+    card.innerHTML = `<div class="loot-icon">${item.icon}</div><div class="loot-name">${item.name}</div><div class="loot-desc">${item.desc}</div>`;
+    card.onclick = () => {
+      item.apply(G.player);
+      panel.style.display = 'none';
+      G.state = 'playing';
+      G.roomNum++;
+      buildRoom();
+      spawnEnemies();
+      setMsg('Room ' + G.roomNum + ' — good luck!', 2200);
+      updateHUD();
+    };
+    grid.appendChild(card);
+  }
+}
+
+function rectOverlap(a, b) {
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+}
+
+function wallCollide(obj, dx, dy) {
+  const moved = { x: obj.x+dx, y: obj.y+dy, w: obj.w, h: obj.h };
+  for (const w of G.walls) if (rectOverlap(moved, w)) return true;
+  return false;
+}
+
+function setMsg(txt, duration) {
+  G.msg = txt;
+  G.msgTimer = duration || 2000;
+  document.getElementById('msgBox').textContent = txt;
+}
+
+function updateHUD() {
+  const p = G.player;
+  document.getElementById('hpFill').style.width = (Math.max(0, p.hp) / p.maxHp * 100) + '%';
+  document.getElementById('hpText').textContent = Math.max(0, Math.ceil(p.hp)) + '/' + p.maxHp;
+  document.getElementById('roomNum').textContent = G.roomNum;
+  document.getElementById('goldAmt').textContent = p.gold;
+  document.getElementById('atkStat').textContent = p.atk;
+  document.getElementById('arrowCount').textContent = p.arrows;
+}
+
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const spd = 1 + Math.random() * 3;
+    G.particles.push({ x, y, vx: Math.cos(a)*spd, vy: Math.sin(a)*spd, life: 1, color });
+  }
+}
+
+function meleeSweep() {
+  const p = G.player;
+  if (p.meleeCooldown > 0) return;
+  p.meleeCooldown = 28;
+  const ang = Math.atan2(G.mouse.y - (p.y+p.h/2), G.mouse.x - (p.x+p.w/2));
+  const range = 65;
+  G.enemies.forEach(e => {
+    const ex = e.x+e.w/2, ey = e.y+e.h/2;
+    const dist = Math.hypot(ex-(p.x+p.w/2), ey-(p.y+p.h/2));
+    if (dist < range) {
+      const ea = Math.atan2(ey-(p.y+p.h/2), ex-(p.x+p.w/2));
+      const diff = Math.abs(((ea-ang)+Math.PI*3) % (Math.PI*2) - Math.PI);
+      if (diff < 1.1) {
+        e.hp -= p.atk;
+        spawnParticles(ex, ey, '#ff4444', 6);
+        e.vx = Math.cos(ang)*5; e.vy = Math.sin(ang)*5;
+      }
+    }
+  });
+  G.meleeFlash = { angle: ang, timer: 10 };
+}
+
+function shootArrow() {
+  const p = G.player;
+  if (p.arrowCooldown > 0) return;
+  if (p.arrows <= 0) { setMsg('No arrows!', 1000); return; }
+  p.arrows--;
+  p.arrowCooldown = 18;
+  const ang = Math.atan2(G.mouse.y-(p.y+p.h/2), G.mouse.x-(p.x+p.w/2));
+  G.projectiles.push({ x: p.x+p.w/2, y: p.y+p.h/2, vx: Math.cos(ang)*11, vy: Math.sin(ang)*11, w:7,h:5, owner:'player', dmg: p.atk*0.85, angle: ang });
+  updateHUD();
+}
+
+function update() {
+  if (!G || G.state !== 'playing') return;
+  const p = G.player;
+  const { W, H } = getPlayArea();
+
+  const dx = ((G.keys['ArrowRight']||G.keys['d']||G.keys['D'])?1:0) - ((G.keys['ArrowLeft']||G.keys['a']||G.keys['A'])?1:0);
+  const dy = ((G.keys['ArrowDown'] ||G.keys['s']||G.keys['S'])?1:0) - ((G.keys['ArrowUp']  ||G.keys['w']||G.keys['W'])?1:0);
+  if (dx !== 0 || dy !== 0) {
+    const len = Math.hypot(dx, dy);
+    const mx = dx/len*p.spd, my = dy/len*p.spd;
+    if (!wallCollide(p, mx, 0)) p.x += mx;
+    if (!wallCollide(p, 0, my)) p.y += my;
+    p.x = Math.max(TILE+1, Math.min(W-TILE-p.w-1, p.x));
+    p.y = Math.max(TILE+1, Math.min(H-TILE-p.h-1, p.y));
+  }
+
+  if (p.invincible > 0) p.invincible--;
+  if (p.meleeCooldown > 0) p.meleeCooldown--;
+  if (p.arrowCooldown > 0) p.arrowCooldown--;
+  if (G.meleeFlash && G.meleeFlash.timer > 0) G.meleeFlash.timer--;
+
+  G.enemies.forEach(e => {
+    const ecx = e.x+e.w/2, ecy = e.y+e.h/2;
+    const pcx = p.x+p.w/2, pcy = p.y+p.h/2;
+    const ang = Math.atan2(pcy-ecy, pcx-ecx);
+    e.vx = (e.vx + Math.cos(ang)*0.3) * 0.88;
+    e.vy = (e.vy + Math.sin(ang)*0.3) * 0.88;
+    if (!wallCollide(e, e.vx, 0)) e.x += e.vx;
+    if (!wallCollide(e, 0, e.vy)) e.y += e.vy;
+
+    if (e.canShoot) {
+      e.shootTimer--;
+      if (e.shootTimer <= 0) {
+        e.shootTimer = 80 + Math.random()*70;
+        G.projectiles.push({ x: ecx, y: ecy, vx: Math.cos(ang)*5, vy: Math.sin(ang)*5, w:6,h:6, owner:'enemy', dmg: e.atk, angle: ang });
+      }
+    }
+
+    if (rectOverlap(p, e) && p.invincible <= 0) {
+      p.hp -= e.atk * 0.06;
+      p.invincible = 12;
+    }
+  });
+
+  G.projectiles = G.projectiles.filter(pr => {
+    pr.x += pr.vx; pr.y += pr.vy;
+    if (pr.x < 0 || pr.x > W || pr.y < 0 || pr.y > H) return false;
+    for (const w of G.walls) {
+      if (rectOverlap(pr, w)) { spawnParticles(pr.x, pr.y, '#888', 3); return false; }
+    }
+    if (pr.owner === 'player') {
+      for (let i = G.enemies.length-1; i >= 0; i--) {
+        if (rectOverlap(pr, G.enemies[i])) {
+          G.enemies[i].hp -= pr.dmg;
+          spawnParticles(pr.x, pr.y, '#ff4', 5);
+          return false;
+        }
+      }
+    } else {
+      if (rectOverlap(pr, p) && p.invincible <= 0) {
+        p.hp -= pr.dmg;
+        p.invincible = 22;
+        spawnParticles(pr.x, pr.y, '#f64', 5);
+        return false;
+      }
+    }
+    return true;
+  });
+
+  G.enemies = G.enemies.filter(e => {
+    if (e.hp <= 0) {
+      p.gold += e.tier === 'elite' ? 10 : 3;
+      spawnParticles(e.x+e.w/2, e.y+e.h/2, e.tier==='elite'?'#a4f':'#ffd700', 10);
+      return false;
+    }
+    return true;
+  });
+
+  G.particles = G.particles.filter(pt => {
+    pt.x += pt.vx; pt.y += pt.vy;
+    pt.vx *= 0.9; pt.vy *= 0.9;
+    pt.life -= 0.04;
+    return pt.life > 0;
+  });
+
+  if (G.enemies.length === 0 && !G.roomCleared) {
+    G.roomCleared = true;
+    G.doorOpen = true;
+    p.hp = Math.min(p.hp + 20, p.maxHp);
+    setMsg('Room cleared! +20 HP. Go through the door.', 3000);
+  }
+
+  if (G.doorOpen && G.door && rectOverlap(p, G.door)) {
+    showLoot();
+  }
+
+  if (p.hp <= 0) {
+    G.state = 'dead';
+    document.getElementById('overlayTitle').textContent = 'You died!';
+    document.getElementById('overlayMsg').innerHTML = `Reached room <b style="color:#fff">${G.roomNum}</b> with <b style="color:#ffd700">${p.gold} gold</b>.<br><br>ATK: ${p.atk} &nbsp;|&nbsp; Max HP: ${p.maxHp} &nbsp;|&nbsp; Arrows: ${p.arrows}`;
+    document.getElementById('startBtn').textContent = 'Play Again';
+    document.getElementById('overlay').style.display = 'flex';
+  }
+
+  if (G.msgTimer > 0) {
+    G.msgTimer -= 16;
+    if (G.msgTimer <= 0) document.getElementById('msgBox').textContent = '';
+  }
+
+  updateHUD();
+}
+
+function draw() {
+  if (!G) return;
+  const { W, H } = getPlayArea();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#1e1e30';
+  for (let gx = TILE; gx < W-TILE; gx += TILE)
+    for (let gy = TILE; gy < H-TILE; gy += TILE)
+      ctx.fillRect(gx, gy, TILE-1, TILE-1);
+
+  G.walls.forEach(w => {
+    ctx.fillStyle = '#2a2a45';
+    ctx.fillRect(w.x, w.y, w.w, w.h);
+    ctx.strokeStyle = '#44446a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(w.x+0.5, w.y+0.5, w.w-1, w.h-1);
+  });
+
+  const d = G.door;
+  if (d) {
+    ctx.fillStyle = G.doorOpen ? '#1a6640' : '#444';
+    ctx.fillRect(d.x, d.y, d.w, d.h);
+    if (G.doorOpen) {
+      ctx.fillStyle = '#4efa99';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('EXIT', d.x+d.w/2, d.y+d.h/2+4);
+    }
+  }
+
+  G.enemies.forEach(e => {
+    const pct = Math.max(0, e.hp / e.maxHp);
+    ctx.fillStyle = e.tier==='elite' ? '#7722bb' : '#bb2211';
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(e.x, e.y-7, e.w, 4);
+    ctx.fillStyle = pct > 0.5 ? '#44ff44' : '#ff8833';
+    ctx.fillRect(e.x, e.y-7, e.w*pct, 4);
+    if (e.canShoot) {
+      ctx.fillStyle = '#ffaa00';
+      ctx.beginPath();
+      ctx.arc(e.x+e.w/2, e.y-13, 3, 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
+
+  G.projectiles.forEach(pr => {
+    ctx.save();
+    ctx.translate(pr.x, pr.y);
+    ctx.rotate(pr.angle || 0);
+    ctx.fillStyle = pr.owner==='player' ? '#ffd700' : '#ff5533';
+    ctx.fillRect(-7, -2, 14, 4);
+    ctx.restore();
+  });
+
+  G.particles.forEach(pt => {
+    ctx.globalAlpha = Math.max(0, pt.life);
+    ctx.fillStyle = pt.color;
+    ctx.fillRect(pt.x-2, pt.y-2, 4, 4);
+  });
+  ctx.globalAlpha = 1;
+
+  const p = G.player;
+  const flash = p.invincible > 0 && Math.floor(p.invincible/3)%2===0;
+  if (!flash) {
+    ctx.fillStyle = '#3399ff';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = '#88ccff';
+    ctx.fillRect(p.x+5, p.y+5, 7, 7);
+  }
+
+  const ang = Math.atan2(G.mouse.y-(p.y+p.h/2), G.mouse.x-(p.x+p.w/2));
+  ctx.save();
+  ctx.translate(p.x+p.w/2, p.y+p.h/2);
+  ctx.rotate(ang);
+  ctx.fillStyle = '#cccccc';
+  ctx.fillRect(8, -2, 20, 4);
+  ctx.restore();
+
+  if (G.meleeFlash && G.meleeFlash.timer > 0) {
+    const cx = p.x+p.w/2, cy = p.y+p.h/2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(G.meleeFlash.angle);
+    ctx.globalAlpha = G.meleeFlash.timer/10;
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(42, 0, 22, -1.0, 1.0);
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+canvas.addEventListener('mousemove', e => {
+  if (!G) return;
+  const r = canvas.getBoundingClientRect();
+  G.mouse.x = e.clientX - r.left;
+  G.mouse.y = e.clientY - r.top;
+});
+
+canvas.addEventListener('click', () => {
+  if (G && G.state === 'playing') meleeSweep();
+});
+
+document.addEventListener('keydown', e => {
+  if (!G) return;
+  G.keys[e.key] = true;
+  if (e.key === 'e' || e.key === 'E') shootArrow();
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+
+document.addEventListener('keyup', e => {
+  if (G) G.keys[e.key] = false;
+});
+
+document.getElementById('startBtn').onclick = () => {
+  document.getElementById('overlay').style.display = 'none';
+  initGame();
+  if (!loopRunning) { loopRunning = true; loop(); }
+};
+</script>
+</body>
+</html>

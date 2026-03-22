@@ -706,6 +706,28 @@ function doMelee(){
   if(hit)snd('hit');
   G.meleeFlash={angle:ang,timer:10};
   emitNoise(px,py,isSneaking?3:5,false);
+
+  // Reflect enemy projectiles in swing arc
+  let reflected=false;
+  G.projectiles.forEach(pr=>{
+    if(pr.owner==='player'||pr.reflected)return; // don't re-reflect
+    const pdist=Math.hypot((pr.x-px),(pr.y-py));
+    if(pdist>T*3.5)return;
+    const pa=Math.atan2(pr.y-py,pr.x-px);
+    if(Math.abs(((pa-ang)+Math.PI*3)%(Math.PI*2)-Math.PI)>1.3)return;
+    // Reflect: flip velocity back toward shooter origin
+    const spd=Math.hypot(pr.vx,pr.vy);
+    // Aim back at whoever fired it (use reversed velocity direction + slight aim toward centre)
+    pr.vx=-pr.vx*1.1; pr.vy=-pr.vy*1.1;
+    pr.angle=Math.atan2(pr.vy,pr.vx);
+    pr.owner='player';
+    pr.reflected=true;
+    pr.dmg*=1.2; // small bonus for the skill
+    burst(pr.x,pr.y,'#ffffff',6,2);
+    burst(pr.x,pr.y,'#ffd700',4,3);
+    reflected=true;
+  });
+  if(reflected)setMsg('Reflected!',1000);
 }
 
 function doShoot(){
@@ -1007,39 +1029,68 @@ function updateDungeon(){
       if(e.shootT<=0){
         e.shootT=(e.shootInt||100)+Math.random()*40;
         const ss=e.tier==='boss'?3:2;
-        G.projectiles.push({x:ecx,y:ecy,vx:Math.cos(ang)*ss,vy:Math.sin(ang)*ss,w:6,h:6,owner:'enemy',dmg:e.atk,angle:ang,boss:e.tier==='boss'});
+        G.projectiles.push({x:ecx,y:ecy,vx:Math.cos(ang)*ss,vy:Math.sin(ang)*ss,w:6,h:6,owner:'enemy',dmg:e.atk,angle:ang,boss:e.tier==='boss',shooterX:ecx,shooterY:ecy});
       }
     }
   });
 
-  // Projectiles
+  // ── Friendly fire avoidance push ──────────────────────────────────
+  // Each enemy projectile exerts a lateral push on nearby enemies in its path
+  G.projectiles.forEach(pr=>{
+    if(pr.owner==='player')return;
+    const pspd=Math.hypot(pr.vx,pr.vy); if(pspd<0.1)return;
+    const pnx=pr.vx/pspd, pny=pr.vy/pspd; // projectile unit direction
+    G.enemies.forEach(e=>{
+      const ecx2=e.x+e.w/2,ecy2=e.y+e.h/2;
+      const toEx=ecx2-pr.x, toEy=ecy2-pr.y;
+      const dot=toEx*pnx+toEy*pny; // how far ahead the enemy is along the shot
+      if(dot<0||dot>T*8)return;    // behind or too far ahead
+      // Perpendicular distance from the shot line
+      const perpX=toEx-dot*pnx, perpY=toEy-dot*pny;
+      const perpDist=Math.hypot(perpX,perpY);
+      if(perpDist>T*1.5)return;    // not in danger zone
+      // Push perpendicular to the shot (away from line)
+      const pushStrength=0.4*(1-perpDist/(T*1.5));
+      const pl2=Math.hypot(perpX,perpY)||1;
+      e.vx+=(perpX/pl2)*pushStrength;
+      e.vy+=(perpY/pl2)*pushStrength;
+    });
+  });
+
+  // ── Projectiles ────────────────────────────────────────────────────
   G.projectiles=G.projectiles.filter(pr=>{
     pr.x+=pr.vx;pr.y+=pr.vy;
     if(tileCollide({x:pr.x-2,y:pr.y-2,w:4,h:4},map)){
       burst(pr.x,pr.y,'#666',3,1.5);
-      // Arrow hitting a wall makes noise at the impact point — enemies investigate there
-      if(pr.owner==='player'){
+      if(pr.owner==='player'&&!pr.reflected){
         const wallNoiseR=pr.explosive?8:5;
-        emitNoise(pr.x,pr.y,wallNoiseR,true); // investigate the wall, not the shooter
+        emitNoise(pr.x,pr.y,wallNoiseR,true);
         if(pr.explosive){snd('explode');burst(pr.x,pr.y,'#ff8800',14,5);G.enemies.forEach(e2=>{if(Math.hypot((e2.x+e2.w/2)-pr.x,(e2.y+e2.h/2)-pr.y)<T*3)e2.hp-=pr.dmg*.5;});}
+      } else if(pr.owner==='enemy'||pr.reflected){
+        // Enemy/reflected shots hitting walls also make noise
+        emitNoise(pr.x,pr.y,3,true);
       }
       return false;
     }
-    if(pr.owner==='player'){
+
+    if(pr.owner==='player'||pr.reflected){
+      // Player/reflected arrows damage enemies
       for(let i=G.enemies.length-1;i>=0;i--){
         if(ov(pr,G.enemies[i])){
-          G.enemies[i].hp-=pr.dmg;G.enemies[i].aiState='chase';G.enemies[i].searchX=px;G.enemies[i].searchY=py;G.enemies[i]._noiseCue=false;
-          if(pr.explosive){snd('explode');burst(pr.x,pr.y,'#ff8800',12,4);G.enemies.forEach(e2=>{if(Math.hypot((e2.x+e2.w/2)-pr.x,(e2.y+e2.h/2)-pr.y)<T*3)e2.hp-=pr.dmg*.5;});}
-          else burst(pr.x,pr.y,'#ffcc00',4,2);
+          const e2=G.enemies[i];
+          e2.hp-=pr.dmg;e2.aiState='chase';e2.searchX=px;e2.searchY=py;e2._noiseCue=false;
+          if(pr.explosive){snd('explode');burst(pr.x,pr.y,'#ff8800',12,4);G.enemies.forEach(e3=>{if(Math.hypot((e3.x+e3.w/2)-pr.x,(e3.y+e3.h/2)-pr.y)<T*3)e3.hp-=pr.dmg*.5;});}
+          else burst(pr.x,pr.y,pr.reflected?'#ffd700':'#ffcc00',5,2);
           snd('hit');return false;
         }
       }
-    }else{
+      // Player arrows don't hit the player themselves
+    } else {
+      // Enemy projectiles: hit player OR other enemies (friendly fire)
       if(ov(pr,p)&&p.invincible<=0){
-        if(p.dodgeT>0){return false;} // dodged — projectile disappears but no damage
+        if(p.dodgeT>0){return false;}
         const dmgMul=p.items.includes('tough')?.8:1;
         if(p.blocking&&p.stamina>0){
-          // Block projectile — costs stamina
           p.stamina=Math.max(0,p.stamina-pr.dmg*0.5);
           burst(pr.x,pr.y,'#4488ff',4,2);snd('hit');shake(3);
           return false;
@@ -1047,8 +1098,20 @@ function updateDungeon(){
         p.hp-=pr.dmg*(pr.boss?1.3:1)*dmgMul;
         p.invincible=20;snd('hurt');shake(pr.boss?8:4);burst(pr.x,pr.y,'#ff3300',5,3);return false;
       }
+      // Friendly fire: enemy projectile hits another enemy
+      for(let i=G.enemies.length-1;i>=0;i--){
+        const ef=G.enemies[i];
+        if(ov(pr,ef)){
+          ef.hp-=pr.dmg*0.8; // slightly reduced friendly fire damage
+          burst(pr.x,pr.y,'#ff8844',4,2);
+          snd('hit');
+          // Hit enemy becomes suspicious of their shooter
+          ef.aiState='suspect';ef.suspectT=40;
+          return false;
+        }
+      }
     }
-    // Cull far projectiles
+
     if(Math.hypot(pr.x-px,pr.y-py)>T*25)return false;
     return true;
   });
@@ -1557,7 +1620,12 @@ function drawPlayer(p,wAng,flash){
 
 function drawProjectile(pr){
   ctx.save();ctx.translate(pr.x,pr.y);ctx.rotate(pr.angle||0);
-  if(pr.owner==='player'){
+  if(pr.reflected){
+    // Reflected: golden orb with trail glow
+    ctx.globalAlpha=0.35;ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;ctx.fillStyle='#ffee44';ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(-1,-1,2,0,Math.PI*2);ctx.fill();
+  } else if(pr.owner==='player'){
     if(pr.explosive){ctx.fillStyle='rgba(255,140,0,.3)';ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff8800';ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();}
     else{ctx.fillStyle='#996633';ctx.fillRect(-6,-1,12,2);ctx.fillStyle='#aaaaaa';ctx.beginPath();ctx.moveTo(6,-2);ctx.lineTo(10,0);ctx.lineTo(6,2);ctx.closePath();ctx.fill();}
   }else{

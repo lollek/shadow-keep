@@ -585,7 +585,7 @@ function burst(x,y,col,n,sp=3){
 function doMelee(){
   const p=G.player;if(p.meleeCd>0)return;
   p.meleeCd=28;snd('melee');
-  // Aim toward mouse (world coords)
+  const px=p.x+p.w/2, py=p.y+p.h/2;
   const wx=G.mouse.x+G.cam.x, wy=G.mouse.y+G.cam.y-(62);
   const ang=Math.atan2(wy-(p.y+p.h/2),wx-(p.x+p.w/2));
   let hit=false;

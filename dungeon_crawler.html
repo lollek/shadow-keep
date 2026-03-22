@@ -400,6 +400,7 @@ function initDungeonFloor(floor){
     cam:{x:0,y:0},
     meleeFlash:null,
     showMap:false,
+    sneaking:false,
     goldBonus,
   };
   updateCamera();
@@ -442,6 +443,7 @@ function initBossFloor(floor){
     cam:{x:0,y:0},
     meleeFlash:null,
     showMap:false,
+    sneaking:false,
     goldBonus:pl('gld')*2,
     bossDefeated:false,
   };
@@ -629,9 +631,9 @@ function updateDungeon(){
   const dmgMul=p.items.includes('tough')?.8:1;
 
   // Player move
-  const isSneaking=G.keys['Shift']||G.keys['shift'];
-  const dx=((G.keys['d']||G.keys['D']||G.keys['ArrowRight'])?1:0)-((G.keys['a']||G.keys['A']||G.keys['ArrowLeft'])?1:0);
-  const dy=((G.keys['s']||G.keys['S']||G.keys['ArrowDown'])?1:0)-((G.keys['w']||G.keys['W']||G.keys['ArrowUp'])?1:0);
+  const isSneaking=!!G.sneaking;
+  const dx=((G.keys['KeyD']||G.keys['ArrowRight'])?1:0)-((G.keys['KeyA']||G.keys['ArrowLeft'])?1:0);
+  const dy=((G.keys['KeyS']||G.keys['ArrowDown'])?1:0)-((G.keys['KeyW']||G.keys['ArrowUp'])?1:0);
   const moveSpd=isSneaking?p.spd*0.45:p.spd;
   if(dx||dy){const l=Math.hypot(dx,dy);moveEntity(p,dx/l*moveSpd,dy/l*moveSpd);}
   G.isSneaking=isSneaking;
@@ -887,16 +889,16 @@ function bldgRects(){
 function updateTown(){
   if(!TW||!S.player||S.mode!=='town')return;
   const p=S.player,{W,H}=tvArea();
-  const spd=2.2,dx=((TW.keys['d']||TW.keys['D']||TW.keys['ArrowRight'])?1:0)-((TW.keys['a']||TW.keys['A']||TW.keys['ArrowLeft'])?1:0);
-  const dy=((TW.keys['s']||TW.keys['S']||TW.keys['ArrowDown'])?1:0)-((TW.keys['w']||TW.keys['W']||TW.keys['ArrowUp'])?1:0);
+  const spd=2.2,dx=((TW.keys['KeyD']||TW.keys['ArrowRight'])?1:0)-((TW.keys['KeyA']||TW.keys['ArrowLeft'])?1:0);
+  const dy=((TW.keys['KeyS']||TW.keys['ArrowDown'])?1:0)-((TW.keys['KeyW']||TW.keys['ArrowUp'])?1:0);
   if(dx||dy){const l=Math.hypot(dx,dy);p.x+=dx/l*spd;p.y+=dy/l*spd;}
   p.x=Math.max(0,Math.min(W-p.w,p.x));p.y=Math.max(0,Math.min(H-p.h,p.y));
   tickMsg();updateHUD();
   bldgRects().forEach(b=>{
     if(p.x+p.w>b.bx+10&&p.x<b.bx+b.bw-10&&p.y+p.h>b.by+b.bh*.6&&p.y<b.by+b.bh){
       setMsg('Press F or Space — '+b.label,400);
-      if(TW.keys['f']||TW.keys['F']||TW.keys[' ']){
-        TW.keys['f']=TW.keys['F']=TW.keys[' ']=false;
+      if(TW.keys['KeyF']||TW.keys['Space']){
+        TW.keys['KeyF']=TW.keys['Space']=false;
         enterBuilding(b.id);
       }
     }
@@ -1309,18 +1311,26 @@ canvas.addEventListener('mousemove',e=>{
   if(G)G.mouse={x:mx,y:my};
 });
 canvas.addEventListener('click',()=>{if(G&&S.mode==='dungeon')doMelee();});
+
+// Use e.code (physical key) so modifier keys never corrupt the map
 document.addEventListener('keydown',e=>{
-  if(S.mode==='town'&&TW)TW.keys[e.key]=true;
-  if(S.mode==='dungeon'&&G){
-    G.keys[e.key]=true;
-    if(e.key==='e'||e.key==='E')doShoot();
-    if(e.key==='m'||e.key==='M')G.showMap=!G.showMap;
-  }
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+  if(e.repeat)return;
+  if(S.mode==='town'&&TW)TW.keys[e.code]=true;
+  if(S.mode==='dungeon'&&G){
+    G.keys[e.code]=true;
+    if(e.code==='KeyE')doShoot();
+    if(e.code==='KeyM')G.showMap=!G.showMap;
+    if(e.code==='ShiftLeft'||e.code==='ShiftRight')G.sneaking=!G.sneaking;
+  }
 });
 document.addEventListener('keyup',e=>{
-  if(TW)TW.keys[e.key]=false;
-  if(G)G.keys[e.key]=false;
+  if(TW)TW.keys[e.code]=false;
+  if(G)G.keys[e.code]=false;
+});
+window.addEventListener('blur',()=>{
+  if(TW)TW.keys={};
+  if(G)G.keys={};
 });
 
 document.getElementById('titleBtn').onclick=()=>{

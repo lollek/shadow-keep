@@ -210,6 +210,7 @@ let G=null;   // dungeon state
 let TW=null;  // town state
 let running=false;
 let shakeT=0,shakeX=0,shakeY=0;
+let isSneaking=false; // module-level so combat functions can read it
 function shake(a){shakeT=8;shakeX=(Math.random()-.5)*a;shakeY=(Math.random()-.5)*a;}
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -583,6 +584,36 @@ function burst(x,y,col,n,sp=3){
   }
 }
 
+// Emit a sound event at world position (nx,ny) with tile radius noiseR.
+// Enemies within range who aren't already chasing will investigate the noise source.
+// investigateSource=true  → enemies go to (nx,ny) themselves (arrow wall hit)
+// investigateSource=false → enemies go to player position (melee swing)
+function emitNoise(nx,ny,noiseR,investigateSource){
+  // Visual ripple ring — stored as a special particle type
+  G.particles.push({type:'ripple',x:nx,y:ny,r:0,maxR:noiseR*T,life:1});
+
+  G.enemies.forEach(e=>{
+    if(e.aiState==='chase')return; // already fully alerted, don't downgrade
+    const dist=Math.hypot((e.x+e.w/2)-nx,(e.y+e.h/2)-ny);
+    if(dist>noiseR*T)return;
+    // Noise doesn't require LOS — it travels through walls (muffled at range)
+    if(e.aiState==='patrol'||e.aiState==='search'){
+      e.aiState='suspect';
+      e.suspectT=50; // slightly longer suspicion from audio cue (no visual)
+    }
+    // Point them toward the noise source or toward the player
+    if(investigateSource){
+      e.searchX=nx; e.searchY=ny;
+    } else {
+      const p=G.player;
+      e.searchX=p.x+p.w/2; e.searchY=p.y+p.h/2;
+    }
+    // After suspicion resolves → they'll switch to 'search' at searchX/Y
+    // Override: make suspect resolve into search (not chase) for audio-only cues
+    e._noiseCue=true;
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // COMBAT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -599,8 +630,7 @@ function doMelee(){
       const ea=Math.atan2(ey-(p.y+p.h/2),ex-(p.x+p.w/2));
       if(Math.abs(((ea-ang)+Math.PI*3)%(Math.PI*2)-Math.PI)<1.2){
         e.hp-=p.atk;e.vx=Math.cos(ang)*4;e.vy=Math.sin(ang)*4;
-        e.aiState='chase';e.searchX=px;e.searchY=py;
-        // Noise: alert nearby enemies too
+        e.aiState='chase';e.searchX=px;e.searchY=py;e._noiseCue=false;
         const hcx=e.x+e.w/2, hcy=e.y+e.h/2;
         G.enemies.forEach(n=>{if(n!==e&&Math.hypot((n.x+n.w/2)-hcx,(n.y+n.h/2)-hcy)<T*6){n.aiState='suspect';n.suspectT=30;n.searchX=px;n.searchY=py;}});
         burst(ex,ey,'#ff4444',5);hit=true;
@@ -610,6 +640,9 @@ function doMelee(){
   });
   if(hit)snd('hit');
   G.meleeFlash={angle:ang,timer:10};
+  // Swing noise — alert enemies near player even without a hit
+  const noiseR=isSneaking?3:5;
+  emitNoise(px,py,noiseR,false);
 }
 
 function doShoot(){
@@ -633,7 +666,7 @@ function updateDungeon(){
   const dmgMul=p.items.includes('tough')?.8:1;
 
   // Player move
-  const isSneaking=!!G.sneaking;
+  isSneaking=!!G.sneaking;
   const dx=((G.keys['KeyD']||G.keys['ArrowRight'])?1:0)-((G.keys['KeyA']||G.keys['ArrowLeft'])?1:0);
   const dy=((G.keys['KeyS']||G.keys['ArrowDown'])?1:0)-((G.keys['KeyW']||G.keys['ArrowUp'])?1:0);
   const moveSpd=isSneaking?p.spd*0.45:p.spd;
@@ -685,7 +718,11 @@ function updateDungeon(){
         e.suspectT=e.tier==='charger'?20:40; // charger reacts faster
       } else if(e.aiState==='suspect'){
         e.suspectT--;
-        if(e.suspectT<=0){e.aiState='chase';}
+        if(e.suspectT<=0){
+          // Audio-only cues: go investigate the location, don't chase the player
+          e.aiState=e._noiseCue?'search':'chase';
+          e._noiseCue=false;
+        }
       } else {
         e.aiState='chase';
       }
@@ -813,12 +850,19 @@ function updateDungeon(){
   G.projectiles=G.projectiles.filter(pr=>{
     pr.x+=pr.vx;pr.y+=pr.vy;
     if(tileCollide({x:pr.x-2,y:pr.y-2,w:4,h:4},map)){
-      burst(pr.x,pr.y,'#666',3,1.5);return false;
+      burst(pr.x,pr.y,'#666',3,1.5);
+      // Arrow hitting a wall makes noise at the impact point — enemies investigate there
+      if(pr.owner==='player'){
+        const wallNoiseR=pr.explosive?8:5;
+        emitNoise(pr.x,pr.y,wallNoiseR,true); // investigate the wall, not the shooter
+        if(pr.explosive){snd('explode');burst(pr.x,pr.y,'#ff8800',14,5);G.enemies.forEach(e2=>{if(Math.hypot((e2.x+e2.w/2)-pr.x,(e2.y+e2.h/2)-pr.y)<T*3)e2.hp-=pr.dmg*.5;});}
+      }
+      return false;
     }
     if(pr.owner==='player'){
       for(let i=G.enemies.length-1;i>=0;i--){
         if(ov(pr,G.enemies[i])){
-          G.enemies[i].hp-=pr.dmg;G.enemies[i].aiState='chase';G.enemies[i].searchX=px;G.enemies[i].searchY=py;
+          G.enemies[i].hp-=pr.dmg;G.enemies[i].aiState='chase';G.enemies[i].searchX=px;G.enemies[i].searchY=py;G.enemies[i]._noiseCue=false;
           if(pr.explosive){snd('explode');burst(pr.x,pr.y,'#ff8800',12,4);G.enemies.forEach(e2=>{if(Math.hypot((e2.x+e2.w/2)-pr.x,(e2.y+e2.h/2)-pr.y)<T*3)e2.hp-=pr.dmg*.5;});}
           else burst(pr.x,pr.y,'#ffcc00',4,2);
           snd('hit');return false;
@@ -844,7 +888,14 @@ function updateDungeon(){
     if(e.tier==='splitter'&&!e._split){e._split=true;G.enemies.push(mkEnemy('minion',ecx-10,ecy));G.enemies.push(mkEnemy('minion',ecx+10,ecy));}
   });
   G.enemies=G.enemies.filter(e=>e.hp>0);
-  G.particles=G.particles.filter(pt=>{pt.x+=pt.vx;pt.y+=pt.vy;pt.vx*=.9;pt.vy*=.9;pt.life-=.04;return pt.life>0;});
+  G.particles=G.particles.filter(pt=>{
+    if(pt.type==='ripple'){
+      pt.r+=pt.maxR*0.06; // expand outward
+      pt.life-=0.045;
+      return pt.life>0;
+    }
+    pt.x+=pt.vx;pt.y+=pt.vy;pt.vx*=.9;pt.vy*=.9;pt.life-=.04;return pt.life>0;
+  });
 
   if(p.hp<=0){
     p.hp=0;S.mode='dead';sv.gold=S.gold;writeSv();
@@ -1063,6 +1114,14 @@ function drawDungeon(){
 
   // Particles
   G.particles.forEach(pt=>{
+    if(pt.type==='ripple'){
+      ctx.globalAlpha=Math.max(0,pt.life)*0.5;
+      ctx.strokeStyle='#ffee88';
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(pt.x,pt.y,pt.r,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=1;
+      return;
+    }
     ctx.globalAlpha=Math.max(0,pt.life);
     ctx.fillStyle=pt.color;
     const s=1.5+pt.life*2;ctx.fillRect(pt.x-s/2,pt.y-s/2,s,s);

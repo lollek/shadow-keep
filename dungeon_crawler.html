@@ -207,7 +207,7 @@ function buildRoom() {
   G.isBossRoom = (G.roomNum % 5 === 0);
   G.doorOpen = false; G.projectiles = []; G.particles = []; G.roomCleared = false; G.meleeFlash = null;
   // Door: gap in right wall
-  G.door = { x: W - TILE, y: H/2 - 26, w: TILE, h: 52 };
+  G.door = { x: W - TILE - 4, y: H/2 - 26, w: TILE + 4, h: 52 };
   rebuildWalls();
   if (G.isBossRoom) { spawnBoss(); playSound('boss'); setMsg('★ BOSS ROOM ★', 3000); }
   else spawnEnemies();
@@ -410,7 +410,7 @@ function update() {
   if(dx||dy){
     const l=Math.hypot(dx,dy), mx=dx/l*p.spd, my=dy/l*p.spd;
     if(!wallHit(p,mx,0)) p.x+=mx; if(!wallHit(p,0,my)) p.y+=my;
-    p.x=Math.max(TILE+1,Math.min(W-TILE-p.w-1,p.x));
+    p.x=Math.max(TILE+1,Math.min(W-p.w,p.x));
     p.y=Math.max(TILE+1,Math.min(H-TILE-p.h-1,p.y));
   }
   if(p.invincible>0)p.invincible--; if(p.meleeCooldown>0)p.meleeCooldown--; if(p.arrowCooldown>0)p.arrowCooldown--;
@@ -489,11 +489,8 @@ function update() {
     setMsg(G.isBossRoom?'Boss slain! +45 HP. Exit →':'Room clear! +20 HP. Exit →',3000);
   }
 
-  // Door entry — player walks through right-wall gap
-  if(G.doorOpen&&p.x+p.w>=W-TILE){
-    const pcy=p.y+p.h/2, doorY=H/2-26;
-    if(pcy>=doorY&&pcy<=doorY+52) showLoot(G.isBossRoom);
-  }
+  // Door entry — overlap with door rect
+  if(G.doorOpen&&G.door&&overlap(p,G.door)) showLoot(G.isBossRoom);
 
   // Death
   if(p.hp<=0){

@@ -597,7 +597,8 @@ function doMelee(){
         e.hp-=p.atk;e.vx=Math.cos(ang)*4;e.vy=Math.sin(ang)*4;
         e.aiState='chase';e.searchX=px;e.searchY=py;
         // Noise: alert nearby enemies too
-        G.enemies.forEach(n=>{if(n!==e&&Math.hypot((n.x+n.w/2)-ecx,(n.y+n.h/2)-ecy)<T*6)n.aiState='suspect',n.suspectT=30,n.searchX=px,n.searchY=py;});
+        const hcx=e.x+e.w/2, hcy=e.y+e.h/2;
+        G.enemies.forEach(n=>{if(n!==e&&Math.hypot((n.x+n.w/2)-hcx,(n.y+n.h/2)-hcy)<T*6){n.aiState='suspect';n.suspectT=30;n.searchX=px;n.searchY=py;}});
         burst(ex,ey,'#ff4444',5);hit=true;
         if(p.items.includes('vampire'))p.hp=Math.min(p.hp+3,p.maxHp);
       }

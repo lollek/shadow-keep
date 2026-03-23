@@ -363,7 +363,7 @@ function initDungeonFloor(floor){
 
   // Spawn enemies in rooms (not start/exit room)
   const enemies=[];
-  const goldBonus=pl('gld')*2;
+  const goldBonus=0;
   rooms.forEach((r,i)=>{
     if(i===0)return; // no enemies in start room
     const isFar=r===exitRoom;
@@ -426,7 +426,7 @@ function initBossFloor(floor){
     meleeFlash:null,
     showMap:false,
     sneaking:false,
-    goldBonus:pl('gld')*2,
+    goldBonus:0,
     bossDefeated:false,
   };
   updateCamera();
@@ -1226,21 +1226,6 @@ function openShop(title,sub,items){
   showPanel('shopPanel');
 }
 
-function openUpgradeHall(){
-  S.mode='shop';
-  document.getElementById('shopTitle').textContent='Upgrade Hall';
-  document.getElementById('shopSub').textContent='Permanent upgrades · Gold: '+S.gold;
-  const grid=document.getElementById('shopGrid');grid.innerHTML='';
-  PERMA.forEach(u=>{
-    const l=pl(u.id),maxed=l>=u.max,cost=u.cost(l),ok=S.gold>=cost&&!maxed;
-    const c=document.createElement('div');
-    c.className='sc r-rare'+(ok?'':' cant');
-    c.innerHTML=`<div class="sc-icon">${u.icon}</div><div class="sc-name">${u.name} Lv${l}/${u.max}</div><div class="sc-desc">${u.desc}</div><div class="sc-cost">${maxed?'MAXED':ok?cost+' gold':'🔒 '+cost+' gold'}</div>`;
-    if(ok)c.onclick=()=>{S.gold-=cost;sv.gold=S.gold;sv.perma[u.id]=(sv.perma[u.id]||0)+1;writeSv();snd('buy');openUpgradeHall();};
-    grid.appendChild(c);
-  });
-  showPanel('shopPanel');
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DRAW HELPERS

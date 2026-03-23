@@ -1025,7 +1025,10 @@ function updateDungeon(){
       const minD=(p.w+e.w)/2;
       if(dist>=minD)return;
       const push=minD-dist,nx2=ddx/dist,ny2=ddy/dist;
-      p.x+=nx2*push;p.y+=ny2*push;
+      // Try to push player, but don't push into a wall
+      const newX=p.x+nx2*push, newY=p.y+ny2*push;
+      if(!tileCollide({x:newX,y:p.y,w:p.w,h:p.h},G.map)) p.x=newX;
+      if(!tileCollide({x:p.x,y:newY,w:p.w,h:p.h},G.map)) p.y=newY;
     });
   }
 

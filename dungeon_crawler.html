@@ -6,7 +6,7 @@
 <title>Dungeon Crawler</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:#0a0a14;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:monospace;}
+body{background:#0a0a14;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:monospace;user-select:none;-webkit-user-select:none;}
 #wrap{position:relative;user-select:none;}
 canvas{display:block;}
 #hud{position:absolute;top:0;left:0;width:100%;display:flex;align-items:center;gap:10px;padding:7px 12px;background:rgba(0,0,0,0.82);pointer-events:none;flex-wrap:wrap;}
@@ -1759,10 +1759,13 @@ canvas.addEventListener('mousemove',e=>{
   if(TW)TW.mouse={x:mx,y:my};
   if(G)G.mouse={x:mx,y:my};
 });
-canvas.addEventListener('click',()=>{if(G&&S.mode==='dungeon')doMelee();});
-canvas.addEventListener('contextmenu',e=>{e.preventDefault();});
-canvas.addEventListener('mousedown',e=>{if(e.button===2&&G)G.rmb=true;});
+canvas.addEventListener('mousedown',e=>{
+  e.preventDefault();
+  if(e.button===0&&G&&S.mode==='dungeon')doMelee();
+  if(e.button===2&&G)G.rmb=true;
+});
 canvas.addEventListener('mouseup',e=>{if(e.button===2&&G)G.rmb=false;});
+canvas.addEventListener('selectstart',e=>e.preventDefault());
 
 document.addEventListener('keydown',e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();

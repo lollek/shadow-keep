@@ -1419,21 +1419,14 @@ function drawEnemy(e){
     ctx.beginPath();ctx.arc(cx,cy,r+8,0,Math.PI*2);ctx.stroke();
   }
 
-  // Vision cone
-  if(e.tier!=='boss'&&e.aiState!=='chase'){
-    const coneHalf=e.tier==='sniper'?0.55:1.22;
-    const coneRange=(e.tier==='sniper'?T*14:T*7)*0.9;
-    ctx.save();ctx.globalAlpha=e.aiState==='suspect'?0.22:0.08;
-    ctx.fillStyle=e.aiState==='suspect'?'#ffaa00':'#ffffaa';
-    ctx.beginPath();ctx.moveTo(cx,cy);
-    ctx.arc(cx,cy,coneRange,e.facing-coneHalf,e.facing+coneHalf);
-    ctx.closePath();ctx.fill();ctx.restore();
-  }
+  // Subtle facing dot — small bright spot on the front edge of every enemy
+  // This replaces the cone and text markers as a readable but non-gamey direction cue
+  const faceDotX=cx+Math.cos(e.facing)*r*0.82;
+  const faceDotY=cy+Math.sin(e.facing)*r*0.82;
+  const faceDotCol=e.aiState==='chase'?'#ff4400':e.aiState==='suspect'?'#ffcc00':'rgba(255,255,255,0.55)';
 
-  // AI state marker
-  if(e.aiState==='suspect'){ctx.font='bold 11px monospace';ctx.textAlign='center';ctx.fillStyle='#ffcc00';ctx.fillText('?',cx,e.y-r-3);}
-  else if(e.aiState==='chase'){ctx.font='bold 11px monospace';ctx.textAlign='center';ctx.fillStyle='#ff2200';ctx.fillText('!',cx,e.y-r-3);}
-  else if(e.aiState==='search'){ctx.font='9px monospace';ctx.textAlign='center';ctx.fillStyle='#aa7700';ctx.fillText('?',cx,e.y-r-3);}
+  // AI state marker — REMOVED (stealth game: player shouldn't see enemy state text)
+  // Vision cone  — REMOVED (too much information, breaks immersion)
 
   ctx.save();ctx.translate(cx,cy);ctx.rotate(e.facing);
 
@@ -1570,6 +1563,12 @@ function drawEnemy(e){
     ctx.fillStyle='#ff3333';ctx.beginPath();ctx.arc(-r*.2,-r*.35,2,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.arc(r*.2,-r*.35,2,0,Math.PI*2);ctx.fill();
     ctx.restore();
+  }
+
+  // Facing dot — drawn after body so it appears on top
+  if(e.tier!=='boss'){
+    ctx.fillStyle=faceDotCol;
+    ctx.beginPath();ctx.arc(faceDotX,faceDotY,2.2,0,Math.PI*2);ctx.fill();
   }
 
   // HP bar

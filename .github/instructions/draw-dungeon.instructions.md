@@ -9,6 +9,8 @@ applyTo: "src/draw/dungeon.ts"
 - Only draw tiles within the camera viewport (tx0..tx1, ty0..ty1 range)
 - Fog values: 0=unseen (skip), 1=seen-but-dark (dim), 2=currently-visible (full)
 - New tile types need rendering in the tile loop AND appropriate fog dimming
+- Tile rendering uses `G.theme` colors (floorCols, wallCols, waterCol, spikeCol) — never use hardcoded color arrays
+- Existing tile renderers: water (ripple animation), spikes (glint animation), chests (gold box), breakable walls (crack lines)
 - Particle rendering happens after tiles but before UI
 - Minimap draws all seen tiles at 3x scale — new tile types need minimap colors too
 - Use `ctx.save()`/`ctx.restore()` for any transform or alpha changes

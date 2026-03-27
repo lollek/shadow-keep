@@ -22,8 +22,10 @@ Browser-based 2D dungeon crawler in TypeScript + Vite. Single-page canvas game, 
 **Key patterns:**
 - `store.G` holds the active `DungeonState` (nullable — only set during dungeon)
 - `store.TW` holds the active `TownState` (nullable — only set during town)
-- Tile values: 0=wall, 1=floor, 2=exit. New tile types extend this (see types.ts)
+- Tile values: 0=wall, 1=floor, 2=exit, 3=chest, 4=water, 5=spikes, 6=breakable (see `TileValue` in types.ts)
+- Floor themes: 4 bands (Dungeon 1-4, Caverns 5-9, Shrine 10-14, Shadow Keep 15+) via `getTheme()` in constants.ts
 - Constants `T` (tile size=24px) and `UI_HEIGHT` (HUD height=62px) must always be used — never hardcode these values
+- Use `TILE_*` constants from constants.ts — never hardcode tile numeric values
 - Pure logic modules (map-gen, collision, fog, enemies, player) take explicit parameters for testability
 
 ## Code Style

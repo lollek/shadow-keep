@@ -1,12 +1,13 @@
 import { S, store } from '../state';
 import { ctx, canvas } from '../canvas';
+import { UI_HEIGHT } from '../constants';
 import { tvArea, bldgRects } from '../town';
 import { drawTownPlayer } from './player';
 
 export function drawTown(): void {
   const { W, H } = tvArea();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save(); ctx.translate(0, 62);
+  ctx.save(); ctx.translate(0, UI_HEIGHT);
 
   // Sky
   ctx.fillStyle = '#0d1a2a'; ctx.fillRect(0, 0, W, H);

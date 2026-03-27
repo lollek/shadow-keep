@@ -1,6 +1,7 @@
 import type { Building, Player, ShopItem } from './types';
 
 export const T = 24;
+export const UI_HEIGHT = 62;
 export const MAP_W = 56;
 export const MAP_H = 42;
 

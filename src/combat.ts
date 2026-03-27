@@ -1,6 +1,6 @@
 import type { Particle } from './types';
 import { store } from './state';
-import { T } from './constants';
+import { T, UI_HEIGHT } from './constants';
 import { snd } from './audio';
 import { setMsg, updateHUD } from './ui';
 
@@ -41,7 +41,7 @@ export function doMelee(): void {
   if (p.meleeCd > 0 || p.dodgeT > 0) return;
   p.meleeCd = 28; snd('melee');
   const px = p.x + p.w / 2, py = p.y + p.h / 2;
-  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - 62;
+  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - UI_HEIGHT;
   const ang = Math.atan2(wy - py, wx - px);
   let hit = false;
 
@@ -117,7 +117,7 @@ export function doShoot(): void {
   if (p.arrowCd > 0 || p.dodgeT > 0) return;
   if (p.arrows <= 0) { setMsg('No arrows!', 900); return; }
   p.arrows--; p.arrowCd = 16; snd('shoot');
-  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - 62;
+  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - UI_HEIGHT;
   const ang = Math.atan2(wy - (p.y + p.h / 2), wx - (p.x + p.w / 2));
   const spd = p.items.includes('fastarrows') ? 3.5 : 2.5;
   const expl = p.items.includes('explosive');
@@ -136,7 +136,7 @@ export function doDodge(): void {
   if (p.dodgeCd > 0 || p.dodgeT > 0 || p.stamina < 20) return;
   const dx = ((G.keys['KeyD'] || G.keys['ArrowRight']) ? 1 : 0) - ((G.keys['KeyA'] || G.keys['ArrowLeft']) ? 1 : 0);
   const dy = ((G.keys['KeyS'] || G.keys['ArrowDown']) ? 1 : 0) - ((G.keys['KeyW'] || G.keys['ArrowUp']) ? 1 : 0);
-  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - 62;
+  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - UI_HEIGHT;
   const ppx = p.x + p.w / 2, ppy = p.y + p.h / 2;
   let ddx = dx, ddy = dy;
   if (!dx && !dy) { const a = Math.atan2(wy - ppy, wx - ppx) + Math.PI; ddx = Math.cos(a); ddy = Math.sin(a); }

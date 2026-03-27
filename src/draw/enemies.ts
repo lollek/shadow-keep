@@ -1,4 +1,5 @@
 import { ctx } from '../canvas';
+import { T } from '../constants';
 import type { Enemy } from '../types';
 import { roundRect } from './helpers';
 
@@ -75,7 +76,7 @@ export function drawEnemy(e: Enemy): void {
     ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.moveTo(r * 0.5, -2); ctx.lineTo(r * 0.8, 0); ctx.lineTo(r * 0.5, 2); ctx.closePath(); ctx.fill();
     if (e.aiState === 'chase' || e.aiState === 'suspect') {
       ctx.strokeStyle = 'rgba(200,255,100,.3)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
-      ctx.beginPath(); ctx.moveTo(r * 0.8, 0); ctx.lineTo(24 * 11, 0); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(r * 0.8, 0); ctx.lineTo(T * 11, 0); ctx.stroke(); ctx.setLineDash([]);
     }
     ctx.restore();
   } else if (e.tier === 'splitter') {

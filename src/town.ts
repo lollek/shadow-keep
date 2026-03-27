@@ -1,5 +1,6 @@
 import { S, sv, store } from './state';
 import { canvas } from './canvas';
+import { UI_HEIGHT } from './constants';
 import { snd } from './audio';
 import { setMsg, tickMsg, updateHUD, hideAll, showPanel } from './ui';
 import { writeSv } from './save';
@@ -20,7 +21,7 @@ export function initTown(): void {
 }
 
 export function tvArea(): { W: number; H: number } {
-  return { W: canvas.width, H: canvas.height - 62 };
+  return { W: canvas.width, H: canvas.height - UI_HEIGHT };
 }
 
 export function bldgRects(): BuildingRect[] {

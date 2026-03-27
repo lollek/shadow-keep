@@ -1,13 +1,13 @@
 import type { TileMap } from './types';
 import { store } from './state';
-import { MAP_W } from './constants';
+import { MAP_W, T } from './constants';
 
 export function updateFog(): void {
   const G = store.G!;
   const p = G.player, map = G.map, fog = G.fog;
   const R = 8;
-  const px = Math.floor((p.x + p.w / 2) / 24);
-  const py = Math.floor((p.y + p.h / 2) / 24);
+  const px = Math.floor((p.x + p.w / 2) / T);
+  const py = Math.floor((p.y + p.h / 2) / T);
   for (let y = 0; y < fog.length; y++)
     for (let x = 0; x < fog[0].length; x++)
       if (fog[y][x] === 2) fog[y][x] = 1;

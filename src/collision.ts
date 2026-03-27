@@ -1,4 +1,5 @@
 import type { Rect, TileMap } from './types';
+import { T } from './constants';
 
 export function ov(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -36,10 +37,10 @@ export function separateEntities(a: Rect, b: Rect): void {
 }
 
 export function tileCollide(rect: Rect, map: TileMap): boolean {
-  const x0 = Math.floor(rect.x / 24);
-  const y0 = Math.floor(rect.y / 24);
-  const x1 = Math.floor((rect.x + rect.w - 1) / 24);
-  const y1 = Math.floor((rect.y + rect.h - 1) / 24);
+  const x0 = Math.floor(rect.x / T);
+  const y0 = Math.floor(rect.y / T);
+  const x1 = Math.floor((rect.x + rect.w - 1) / T);
+  const y1 = Math.floor((rect.y + rect.h - 1) / T);
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
       if (ty < 0 || ty >= map.length || tx < 0 || tx >= map[0].length) return true;

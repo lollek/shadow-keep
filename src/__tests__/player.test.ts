@@ -39,7 +39,7 @@ describe('makePlayer', () => {
     const p2 = makePlayer();
     p1.hp = 50;
     expect(p2.hp).toBe(100);
-    p1.items.push('katana+');
+    p1.items.push('vampire');
     expect(p2.items).toEqual([]);
   });
 });

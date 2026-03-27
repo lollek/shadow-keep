@@ -3,6 +3,7 @@ export type EnemyTier = 'basic' | 'charger' | 'sniper' | 'splitter' | 'elite' | 
 export type AIState = 'patrol' | 'suspect' | 'chase' | 'search';
 export type AttackState = 'idle' | 'windup' | 'strike' | 'recovery';
 export type DungeonMode = 'explore' | 'boss';
+export type ItemId = 'vampire' | 'tough' | 'explosive' | 'fastarrows';
 export type SoundType =
   | 'melee' | 'shoot' | 'hit' | 'hurt' | 'die'
   | 'clear' | 'loot' | 'boss' | 'explode' | 'buy' | 'town' | 'exit';
@@ -13,7 +14,7 @@ export interface Rect {
 
 export interface Player extends Rect {
   hp: number; maxHp: number; spd: number; atk: number;
-  arrows: number; items: string[];
+  arrows: number; items: ItemId[];
   invincible: number; meleeCd: number; arrowCd: number;
   stamina: number; maxStamina: number;
   blocking: boolean; parryWindow: number;

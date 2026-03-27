@@ -1,3 +1,5 @@
+import { UI_HEIGHT } from './constants';
+
 export const canvas = document.getElementById('c') as HTMLCanvasElement;
 export const ctx = canvas.getContext('2d')!;
 
@@ -9,5 +11,5 @@ export function resize(): void {
   document.getElementById('wrap')!.style.width = W + 'px';
 }
 
-export function viewH(): number { return canvas.height - 62; }
+export function viewH(): number { return canvas.height - UI_HEIGHT; }
 export function viewW(): number { return canvas.width; }

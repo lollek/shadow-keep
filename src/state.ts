@@ -12,6 +12,10 @@ export const store = {
   shakeY: 0,
   isSneaking: false,
   msgT: 0,
+  fade: 0,
+  fadeDir: 0 as -1 | 0 | 1,
+  fadeText: '',
+  fadeCb: null as (() => void) | null,
 };
 
 export function shake(a: number): void {

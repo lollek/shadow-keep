@@ -1,5 +1,5 @@
 import { S, sv, store } from './state';
-import { canvas, resize } from './canvas';
+import { canvas, ctx, resize } from './canvas';
 import { loadSv } from './save';
 import { hideAll } from './ui';
 import { makePlayer } from './player';
@@ -24,6 +24,30 @@ function loop(): void {
     if (store.G) drawDungeon();
     else if (store.TW || m === 'shop') drawTown();
   }
+
+  // Fade transition overlay
+  if (store.fadeDir !== 0) {
+    store.fade += store.fadeDir * 0.04;
+    if (store.fade >= 1 && store.fadeDir === 1) {
+      store.fade = 1;
+      if (store.fadeCb) { store.fadeCb(); store.fadeCb = null; }
+      store.fadeDir = -1;
+    } else if (store.fade <= 0 && store.fadeDir === -1) {
+      store.fade = 0; store.fadeDir = 0;
+    }
+  }
+  if (store.fade > 0) {
+    const w = canvas.width, h = canvas.height;
+    ctx.fillStyle = `rgba(0,0,0,${store.fade})`;
+    ctx.fillRect(0, 0, w, h);
+    if (store.fade > 0.5 && store.fadeText) {
+      ctx.globalAlpha = Math.min(1, (store.fade - 0.5) * 4);
+      ctx.font = '600 14px monospace'; ctx.fillStyle = '#ddd'; ctx.textAlign = 'center';
+      ctx.fillText(store.fadeText, w / 2, h / 2);
+      ctx.globalAlpha = 1;
+    }
+  }
+
   requestAnimationFrame(loop);
 }
 

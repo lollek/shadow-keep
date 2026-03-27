@@ -26,8 +26,22 @@ export function returnToTown(): void {
 export function nextFloor(): void {
   S.depth++;
   if (S.depth > sv.deepest) { sv.deepest = S.depth; writeSv(); }
-  if (S.depth % 5 === 0) initBossFloor(S.depth);
-  else initDungeonFloor(S.depth);
+  const floor = S.depth;
+  const theme = getTheme(floor);
+  const text = floor % 5 === 0
+    ? `★ BOSS FLOOR ${floor} ★`
+    : `Floor ${floor} — ${theme.name}`;
+  fadeTransition(text, () => {
+    if (floor % 5 === 0) initBossFloor(floor);
+    else initDungeonFloor(floor);
+  });
+}
+
+export function fadeTransition(text: string, cb: () => void): void {
+  store.fadeText = text;
+  store.fadeCb = cb;
+  store.fade = 0;
+  store.fadeDir = 1;
 }
 
 function initDungeonFloor(floor: number): void {

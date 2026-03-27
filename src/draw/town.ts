@@ -1,5 +1,5 @@
 import { S, sv, store } from '../state';
-import { ctx, canvas } from '../canvas';
+import { ctx, canvas, RENDER_SCALE } from '../canvas';
 import { UI_HEIGHT } from '../constants';
 import { tvArea, bldgRects } from '../town';
 import { drawTownPlayer } from './player';
@@ -7,7 +7,7 @@ import { drawTownPlayer } from './player';
 export function drawTown(): void {
   const { W, H } = tvArea();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.save(); ctx.translate(0, UI_HEIGHT);
+  ctx.save(); ctx.translate(0, UI_HEIGHT); ctx.scale(RENDER_SCALE, RENDER_SCALE);
 
   // Sky
   ctx.fillStyle = '#0d1a2a'; ctx.fillRect(0, 0, W, H);
@@ -54,7 +54,13 @@ export function drawTown(): void {
 
   // Player
   const p = S.player;
-  if (p) drawTownPlayer(p);
+  if (p) {
+    const TW = store.TW;
+    const mx = TW ? TW.mouse.x / RENDER_SCALE : p.x + 20;
+    const my = TW ? (TW.mouse.y - UI_HEIGHT) / RENDER_SCALE : p.y;
+    const wAng = Math.atan2(my - (p.y + p.h / 2), mx - (p.x + p.w / 2));
+    drawTownPlayer(p, Math.cos(wAng) >= 0);
+  }
 
   // Proximity hints
   if (p) {

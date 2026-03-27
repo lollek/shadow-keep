@@ -18,7 +18,7 @@ Browser-based 2D dungeon crawler in TypeScript + Vite. Single-page canvas game, 
 - `src/game-flow.ts` — Floor transitions (with fade), town ↔ dungeon flow, run stats
 - `src/town.ts` — Town update loop, shop UI (with tier gating), building interaction
 - `src/draw/` — All rendering (dungeon, town, player, enemies, projectiles, helpers)
-- `src/canvas.ts`, `src/audio.ts` (SFX + procedural music), `src/save.ts`, `src/ui.ts` — Browser services
+- `src/canvas.ts`, `src/audio.ts` (SFX + procedural music), `src/save.ts`, `src/ui.ts` — Browser services (`RENDER_SCALE` in canvas.ts controls camera zoom)
 
 **Key patterns:**
 - `store.G` holds the active `DungeonState` (nullable — only set during dungeon)
@@ -29,6 +29,8 @@ Browser-based 2D dungeon crawler in TypeScript + Vite. Single-page canvas game, 
 - Floor themes: 4 bands (Dungeon 1-4, Caverns 5-9, Shrine 10-14, Shadow Keep 15+) via `getTheme()` in constants.ts
 - Shop tier gating: rare items require floor 5, epic items require floor 10 (checked in openShop)
 - 4 shops: SW (Swordsmith), SA (Herbalist), SF (Toolmaker), SS (Shrine — unlocked at floor 10)
+- Player-facing copy uses `shuriken` in UI, even though internal fields still use `arrows`
+- Player presentation now faces the mouse direction; if changing zoom/aiming logic, keep `RENDER_SCALE` and mouse-to-world conversions in sync
 - Active items: `ActiveItemId` union, Q key, one at a time, cooldown-based
 - Stackable passives: `itemCount()`, `toughMul()`, `vampireHeal()` in player.ts
 - Run stats: `S.run` tracks kills, goldEarned, startTime per descent

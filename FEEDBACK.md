@@ -1,1 +1,0 @@
-* The enemies only firing arrows must attack fast, as now they basically never get their attacks off.

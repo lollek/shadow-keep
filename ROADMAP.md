@@ -11,6 +11,9 @@ A browser-based feudal-Japan dungeon crawler with:
 - Fog of war (Bresenham LOS), minimap, particles, screen shake
 - Active items: smoke bomb, dash strike, caltrops (Q key, cooldowns)
 - Stackable passives: vampire fang (+3 heal/kill/stack), iron lamellar (-20%/-35%/-45% dmg)
+- Player sprite visually faces the mouse in town and dungeon
+- Slightly zoomed-in world rendering for clearer combat readability
+- Ranged enemies fire sooner and more often
 - Floating damage numbers (color-coded: white/yellow/orange/red)
 - Run summary on death with personal bests tracking
 - Persistent unlocks: shop tier gating (rare at floor 5, epic at floor 10)
@@ -25,16 +28,6 @@ A browser-based feudal-Japan dungeon crawler with:
 - 4 floor themes (Dungeon, Caverns, Shrine, Shadow Keep) with distinct visuals
 - Environmental tiles: water (slows), spikes (damage), breakable walls (destructible)
 - 7 tile types: wall, floor, exit, chest, water, spikes, breakable
-
-## Now — Playtest Follow-Ups
-
-### Thematic: Katana pose is still wrong
-- **Symptom:** The player weapon still does not read as "sheathed at idle, drawn in combat". Blocking also looks awkward rather than like a clear guard stance.
-- **Fix:**
-	- Idle/town: katana worn at hip in sheath, readable silhouette, no exposed blade
-	- Block: two-handed or forward guard pose with clear defensive silhouette
-	- Melee: drawn blade feel should match the attack flash direction
-	- Keep town and dungeon visuals consistent
 
 ## Next — Weapon Types (run-starting choice)
 - Player selects weapon at Castle Gate before descending

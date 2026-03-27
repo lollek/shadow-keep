@@ -1,5 +1,5 @@
 import { store } from '../state';
-import { ctx, canvas, viewW, viewH } from '../canvas';
+import { ctx, canvas, viewW, viewH, RENDER_SCALE } from '../canvas';
 import { T, UI_HEIGHT, TILE_WATER, TILE_SPIKES, TILE_CHEST, TILE_BREAKABLE } from '../constants';
 import { drawEnemy } from './enemies';
 import { drawProjectile } from './projectiles';
@@ -19,7 +19,9 @@ export function drawDungeon(): void {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save();
-  ctx.translate(Math.round(-G.cam.x + sx), Math.round(UI_HEIGHT - G.cam.y + sy));
+  ctx.translate(0, UI_HEIGHT);
+  ctx.scale(RENDER_SCALE, RENDER_SCALE);
+  ctx.translate(Math.round(-G.cam.x + sx), Math.round(-G.cam.y + sy));
 
   const map = G.map, fog = G.fog;
   const mapH = map.length, mapW = map[0].length;
@@ -170,13 +172,13 @@ export function drawDungeon(): void {
 
   // Player
   const p = G.player;
-  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - UI_HEIGHT;
+  const wx = G.mouse.x / RENDER_SCALE + G.cam.x, wy = (G.mouse.y - UI_HEIGHT) / RENDER_SCALE + G.cam.y;
   const wAng = Math.atan2(wy - (p.y + p.h / 2), wx - (p.x + p.w / 2));
   const flash = p.invincible > 0 && Math.floor(p.invincible / 3) % 2 === 0;
   const drawn = p.blocking || Boolean(G.meleeFlash && G.meleeFlash.timer > 0);
   if (G.isSneaking) ctx.globalAlpha = 0.65;
   if (p.dodgeT > 0) ctx.globalAlpha = 0.5 + p.dodgeT / 14 * 0.5;
-  drawPlayer(p, wAng, flash, drawn);
+  drawPlayer(p, wAng, flash, drawn, Math.cos(wAng) >= 0);
   ctx.globalAlpha = 1;
   if (G.isSneaking) {
     ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(150,220,255,0.7)';
@@ -208,7 +210,7 @@ function drawMinimap(): void {
   const mw = map[0].length, mh = map.length;
   const scale = 3;
   const mw2 = mw * scale, mh2 = mh * scale;
-  const mx = canvas.width / 2 - mw2 / 2, my = UI_HEIGHT + viewH() / 2 - mh2 / 2;
+  const mx = canvas.width / 2 - mw2 / 2, my = UI_HEIGHT + (canvas.height - UI_HEIGHT) / 2 - mh2 / 2;
   ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(mx - 4, my - 4, mw2 + 8, mh2 + 8);
   for (let ty = 0; ty < mh; ty++) {
     for (let tx = 0; tx < mw; tx++) {

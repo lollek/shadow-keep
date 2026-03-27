@@ -1,5 +1,5 @@
 import { S, sv, store, shake } from './state';
-import { T, TILE_EXIT, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_FLOOR, TILE_BREAKABLE } from './constants';
+import { T, TILE_EXIT, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_FLOOR, TILE_BREAKABLE, WEAPONS } from './constants';
 import { moveEntity, tileCollide, ov, separateEntities } from './collision';
 import { updateFog, hasLOS } from './fog';
 import { updateCamera } from './camera';
@@ -29,13 +29,14 @@ export function updateDungeon(): void {
   const G = store.G;
   if (!G || S.mode !== 'dungeon') return;
   const p = G.player, map = G.map;
+  const weapon = WEAPONS[p.weapon];
 
   store.isSneaking = !!G.sneaking;
   const isSneaking = store.isSneaking;
   const dx = ((G.keys['KeyD'] || G.keys['ArrowRight']) ? 1 : 0) - ((G.keys['KeyA'] || G.keys['ArrowLeft']) ? 1 : 0);
   const dy = ((G.keys['KeyS'] || G.keys['ArrowDown']) ? 1 : 0) - ((G.keys['KeyW'] || G.keys['ArrowUp']) ? 1 : 0);
 
-  p.blocking = !!G.rmb && p.stamina > 0 && p.dodgeT <= 0;
+  p.blocking = weapon.canBlock && !!G.rmb && p.stamina > 0 && p.dodgeT <= 0;
   if (p.blocking) {
     p.stamina = Math.max(0, p.stamina - 0.6);
     const enemyAttacking = G.enemies.some(e => e.atkState === 'windup');

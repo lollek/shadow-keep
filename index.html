@@ -29,6 +29,7 @@ canvas{display:block;}
 .shop-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:600px;}
 .sc{width:148px;background:#111120;border:1px solid #2a2a3a;border-radius:8px;padding:12px 8px;cursor:pointer;text-align:center;font-family:monospace;transition:border-color .1s,background .1s;}
 .sc:hover:not(.cant){border-color:#ffd700;background:#1a1a28;}
+.sc.sel{border-color:#ffd700;background:#1a1a28;}
 .sc.cant{opacity:.4;cursor:default;}
 .sc-icon{font-size:22px;margin-bottom:4px;}
 .sc-name{font-size:12px;color:#ddd;font-weight:500;margin-bottom:2px;}
@@ -55,6 +56,7 @@ canvas{display:block;}
     <div class="st" id="loc">Town</div>
     <div class="st gld">Gold <b id="gld">0</b></div>
     <div class="st">ATK <b id="atk">—</b></div>
+    <div class="st">Weapon <b id="wpn">—</b></div>
     <div class="st">Shuriken <b id="arr">—</b></div>
     <div class="st" id="activeSlot" style="display:none"><b id="activeIcon"></b> <span id="activeName"></span> <span id="activeCd" style="color:#888"></span></div>
     <div class="st" style="margin-left:auto;color:#444;font-size:10px">Deepest: <b id="deep" style="color:#666">—</b></div>
@@ -106,6 +108,13 @@ canvas{display:block;}
     <p id="shopSub" style="color:#ffd700;font-size:12px;margin-top:-6px;"></p>
     <div class="shop-grid" id="shopGrid"></div>
     <button class="btn" id="shopClose" style="margin-top:4px;">Leave Shop</button>
+  </div>
+
+  <div class="panel dark" id="weaponPanel">
+    <h2 id="weaponTitle">Choose Your Weapon</h2>
+    <p id="weaponSub" style="color:#bbb;font-size:12px;margin-top:-6px;"></p>
+    <div class="shop-grid" id="weaponGrid"></div>
+    <button class="btn" id="weaponCancel" style="margin-top:4px;">Stay In Town</button>
   </div>
 </div>
 

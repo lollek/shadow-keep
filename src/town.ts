@@ -6,8 +6,8 @@ import { setMsg, tickMsg, updateHUD, hideAll, showPanel } from './ui';
 import { writeSv } from './save';
 import { startDescent } from './game-flow';
 import { makePlayer } from './player';
-import { BLDGS, SW, SA, SF, SS } from './constants';
-import type { BuildingRect, ShopItem } from './types';
+import { BLDGS, SW, SA, SF, SS, WEAPONS } from './constants';
+import type { BuildingRect, ShopItem, WeaponId } from './types';
 
 export function initTown(): void {
   const { W, H } = tvArea();
@@ -57,7 +57,7 @@ export function updateTown(): void {
 }
 
 function enterBuilding(id: string): void {
-  if (id === 'dungeon') { startDescent(); return; }
+  if (id === 'dungeon') { openWeaponSelect(); return; }
   if (id === 'shrine' && sv.deepest < 10) {
     setMsg('Reach floor 10 to unlock the Shrine');
     return;
@@ -69,6 +69,29 @@ function enterBuilding(id: string): void {
     shrine: ['Shrine', 'Actives & Upgrades', SS],
   };
   if (shops[id]) openShop(...shops[id]);
+}
+
+function openWeaponSelect(): void {
+  if (!S.player) return;
+  S.mode = 'weapon-select';
+  document.getElementById('weaponTitle')!.textContent = 'Choose Your Weapon';
+  document.getElementById('weaponSub')!.textContent = 'Select a stance before descending from the Castle Gate';
+  const grid = document.getElementById('weaponGrid')!;
+  grid.innerHTML = '';
+
+  (Object.entries(WEAPONS) as [WeaponId, (typeof WEAPONS)[WeaponId]][]).forEach(([weaponId, weapon]) => {
+    const c = document.createElement('div');
+    c.className = 'sc r-rare' + (S.player!.weapon === weaponId ? ' sel' : '');
+    c.innerHTML = `<div class="sc-icon">${weapon.icon}</div><div class="sc-name">${weapon.name}</div><div class="sc-desc">${weapon.desc}</div><div class="sc-cost">Click to descend</div>`;
+    c.onclick = () => {
+      S.player!.weapon = weaponId;
+      hideAll();
+      startDescent();
+    };
+    grid.appendChild(c);
+  });
+
+  showPanel('weaponPanel');
 }
 
 export function openShop(title: string, sub: string, items: ShopItem[]): void {

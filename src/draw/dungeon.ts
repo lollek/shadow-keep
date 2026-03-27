@@ -1,10 +1,61 @@
 import { store } from '../state';
 import { ctx, canvas, viewW, viewH, RENDER_SCALE } from '../canvas';
-import { T, UI_HEIGHT, TILE_WATER, TILE_SPIKES, TILE_CHEST, TILE_BREAKABLE } from '../constants';
+import { T, UI_HEIGHT, TILE_WATER, TILE_SPIKES, TILE_CHEST, TILE_BREAKABLE, WEAPONS } from '../constants';
 import { drawEnemy } from './enemies';
 import { drawProjectile } from './projectiles';
 import { drawPlayer } from './player';
 import type { Particle } from '../types';
+
+function drawWeaponTelegraph(wAng: number, alpha: number): void {
+  const G = store.G!;
+  const p = G.player;
+  const weapon = WEAPONS[p.weapon];
+  const reach = T * weapon.meleeRange;
+  const arc = weapon.meleeArc;
+  const innerReach = Math.max(T * 0.75, reach * (weapon.meleeArc < 0.7 ? 0.58 : 0.33));
+
+  ctx.save();
+  ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+
+  ctx.globalAlpha = 0.08 * alpha;
+  ctx.fillStyle = '#ffd700';
+  ctx.beginPath();
+  ctx.moveTo(Math.cos(wAng - arc) * innerReach, Math.sin(wAng - arc) * innerReach);
+  ctx.arc(0, 0, reach, wAng - arc, wAng + arc);
+  ctx.lineTo(Math.cos(wAng + arc) * innerReach, Math.sin(wAng + arc) * innerReach);
+  ctx.arc(0, 0, innerReach, wAng + arc, wAng - arc, true);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.globalAlpha = 0.55 * alpha;
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = weapon.meleeArc < 0.7 ? 2.5 : 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, reach, wAng - arc, wAng + arc);
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.3 * alpha;
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.arc(0, 0, innerReach, wAng - arc, wAng + arc);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(Math.cos(wAng - arc) * innerReach, Math.sin(wAng - arc) * innerReach);
+  ctx.lineTo(Math.cos(wAng - arc) * reach, Math.sin(wAng - arc) * reach);
+  ctx.moveTo(Math.cos(wAng + arc) * innerReach, Math.sin(wAng + arc) * innerReach);
+  ctx.lineTo(Math.cos(wAng + arc) * reach, Math.sin(wAng + arc) * reach);
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.8 * alpha;
+  ctx.fillStyle = '#fff1a8';
+  ctx.beginPath();
+  ctx.arc(Math.cos(wAng) * reach, Math.sin(wAng) * reach, weapon.meleeArc < 0.7 ? 3.2 : 4.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
 
 export function drawDungeon(): void {
   const G = store.G;
@@ -190,12 +241,16 @@ export function drawDungeon(): void {
   }
 
   if (G.meleeFlash && G.meleeFlash.timer > 0) {
-    ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h / 2); ctx.rotate(G.meleeFlash.angle);
+    const weapon = WEAPONS[p.weapon];
+    const reach = T * weapon.meleeRange;
+    const arc = weapon.meleeArc;
     const mt = G.meleeFlash.timer / 10;
+    drawWeaponTelegraph(G.meleeFlash.angle, mt);
+    ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h / 2); ctx.rotate(G.meleeFlash.angle);
     ctx.globalAlpha = mt * 0.7; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(0, 0, T * 2, -1.2, 1.2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, reach, -arc, arc); ctx.stroke();
     ctx.globalAlpha = mt * 0.25; ctx.fillStyle = '#ffd700';
-    ctx.beginPath(); ctx.arc(T * 2, 0, T * 0.8, -1, 1); ctx.fill();
+    ctx.beginPath(); ctx.arc(reach, 0, weapon.meleeArc < 0.7 ? T * 0.45 : T * 0.8, -Math.min(arc, 1), Math.min(arc, 1)); ctx.fill();
     ctx.restore(); ctx.globalAlpha = 1;
   }
 

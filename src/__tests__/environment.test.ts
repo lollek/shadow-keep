@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateMap } from '../map-gen';
 import { tileCollide } from '../collision';
-import { getTheme, MAP_W, MAP_H, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_BREAKABLE, ACTIVE_ITEMS, BLDGS, SS } from '../constants';
+import { getTheme, MAP_W, MAP_H, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_BREAKABLE, ACTIVE_ITEMS, BLDGS, SS, WEAPONS } from '../constants';
 import { makePlayer } from '../player';
 import type { TileMap } from '../types';
 
@@ -24,6 +24,20 @@ describe('getTheme', () => {
   it('returns Shadow Keep for floors 15+', () => {
     expect(getTheme(15).name).toBe('Shadow Keep');
     expect(getTheme(99).name).toBe('Shadow Keep');
+  });
+});
+
+describe('weapon definitions', () => {
+  it('defines four selectable weapons', () => {
+    expect(Object.keys(WEAPONS)).toHaveLength(4);
+    expect(WEAPONS.katana.name).toBe('Katana');
+    expect(WEAPONS.dual_tanto.killResetOnMeleeKill).toBe(true);
+    expect(WEAPONS.dual_tanto.canBlock).toBe(false);
+    expect(WEAPONS.naginata.meleeRange).toBeGreaterThan(WEAPONS.katana.meleeRange);
+    expect(WEAPONS.nodachi.damageMul).toBeGreaterThan(WEAPONS.katana.damageMul);
+    expect(WEAPONS.naginata.icon).toBe('🔱');
+    expect(WEAPONS.nodachi.meleeArc).toBeGreaterThan(Math.PI / 2);
+    expect(WEAPONS.naginata.meleeArc).toBeLessThan(WEAPONS.katana.meleeArc);
   });
 });
 

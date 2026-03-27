@@ -8,6 +8,7 @@ describe('makePlayer', () => {
     expect(p.maxHp).toBe(100);
     expect(p.spd).toBe(2.2);
     expect(p.atk).toBe(10);
+    expect(p.weapon).toBe('katana');
     expect(p.arrows).toBe(10);
     expect(p.stamina).toBe(100);
     expect(p.maxStamina).toBe(100);

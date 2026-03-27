@@ -59,7 +59,7 @@ export function drawTown(): void {
     const mx = TW ? TW.mouse.x / RENDER_SCALE : p.x + 20;
     const my = TW ? (TW.mouse.y - UI_HEIGHT) / RENDER_SCALE : p.y;
     const wAng = Math.atan2(my - (p.y + p.h / 2), mx - (p.x + p.w / 2));
-    drawTownPlayer(p, Math.cos(wAng) >= 0);
+    drawTownPlayer(p, wAng, Math.cos(wAng) >= 0);
   }
 
   // Proximity hints

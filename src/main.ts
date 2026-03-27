@@ -139,3 +139,6 @@ document.getElementById('cpDeepBtn')!.onclick = () => {
 document.getElementById('shopClose')!.onclick = () => {
   hideAll(); S.mode = 'town';
 };
+document.getElementById('weaponCancel')!.onclick = () => {
+  hideAll(); S.mode = 'town';
+};

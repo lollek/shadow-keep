@@ -1,10 +1,11 @@
-export type GameMode = 'title' | 'town' | 'dungeon' | 'dead' | 'pause' | 'shop';
+export type GameMode = 'title' | 'town' | 'dungeon' | 'dead' | 'pause' | 'shop' | 'weapon-select';
 export type EnemyTier = 'basic' | 'charger' | 'sniper' | 'splitter' | 'elite' | 'minion' | 'boss';
 export type AIState = 'patrol' | 'suspect' | 'chase' | 'search';
 export type AttackState = 'idle' | 'windup' | 'strike' | 'recovery';
 export type DungeonMode = 'explore' | 'boss';
 export type ItemId = 'vampire' | 'tough' | 'explosive' | 'fastarrows';
 export type ActiveItemId = 'smoke' | 'dash' | 'caltrops';
+export type WeaponId = 'katana' | 'dual_tanto' | 'naginata' | 'nodachi';
 
 /** Tile values: 0=wall, 1=floor, 2=exit, 3=chest, 4=water, 5=spikes, 6=breakable wall */
 export type TileValue = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -27,6 +28,7 @@ export interface Rect {
 
 export interface Player extends Rect {
   hp: number; maxHp: number; spd: number; atk: number;
+  weapon: WeaponId;
   arrows: number; items: ItemId[];
   invincible: number; meleeCd: number; arrowCd: number;
   stamina: number; maxStamina: number;
@@ -160,6 +162,20 @@ export interface TownState {
 export interface ShopItem {
   n: string; i: string; d: string; c: number; r: string;
   a: (p: Player) => void;
+}
+
+export interface WeaponDef {
+  name: string;
+  icon: string;
+  desc: string;
+  canBlock: boolean;
+  meleeCd: number;
+  meleeRange: number;
+  meleeArc: number;
+  damageMul: number;
+  backstabMul: number;
+  knockback: number;
+  killResetOnMeleeKill: boolean;
 }
 
 export interface Building {

@@ -1,6 +1,6 @@
 import type { Particle, DmgParticle } from './types';
 import { store } from './state';
-import { T, UI_HEIGHT, TILE_BREAKABLE, TILE_FLOOR, ACTIVE_ITEMS } from './constants';
+import { T, UI_HEIGHT, TILE_BREAKABLE, TILE_FLOOR, ACTIVE_ITEMS, WEAPONS, TILE_WALL } from './constants';
 import { RENDER_SCALE } from './canvas';
 import { snd } from './audio';
 import { setMsg, updateHUD } from './ui';
@@ -47,22 +47,44 @@ export function emitNoise(nx: number, ny: number, noiseR: number, investigateSou
   });
 }
 
+function meleePathBlocked(x0: number, y0: number, x1: number, y1: number): boolean {
+  const G = store.G!;
+  const map = G.map;
+  const dist = Math.hypot(x1 - x0, y1 - y0);
+  const steps = Math.max(1, Math.ceil(dist / 6));
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const sx = x0 + (x1 - x0) * t;
+    const sy = y0 + (y1 - y0) * t;
+    const tx = Math.floor(sx / T);
+    const ty = Math.floor(sy / T);
+    if (ty < 0 || ty >= map.length || tx < 0 || tx >= map[0].length) return true;
+    const tile = map[ty][tx];
+    if (tile === TILE_WALL || tile === TILE_BREAKABLE) return true;
+  }
+  return false;
+}
+
 export function doMelee(): void {
   const G = store.G!;
   const p = G.player;
   if (p.meleeCd > 0 || p.dodgeT > 0) return;
-  p.meleeCd = 28; snd('melee');
+  const weapon = WEAPONS[p.weapon];
+  p.meleeCd = weapon.meleeCd; snd('melee');
   const px = p.x + p.w / 2, py = p.y + p.h / 2;
   const wx = G.mouse.x / RENDER_SCALE + G.cam.x, wy = (G.mouse.y - UI_HEIGHT) / RENDER_SCALE + G.cam.y;
   const ang = Math.atan2(wy - py, wx - px);
+  const baseDmg = Math.max(1, Math.round(p.atk * weapon.damageMul));
   let hit = false;
+  let resetChain = false;
 
   G.enemies.forEach(e => {
     const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
     const dist = Math.hypot(ecx - px, ecy - py);
-    if (dist > T * 3) return;
+    if (dist > T * weapon.meleeRange) return;
+    if (meleePathBlocked(px, py, ecx, ecy)) return;
     const ea = Math.atan2(ecy - py, ecx - px);
-    if (Math.abs(((ea - ang) + Math.PI * 3) % (Math.PI * 2) - Math.PI) > 1.2) return;
+    if (Math.abs(((ea - ang) + Math.PI * 3) % (Math.PI * 2) - Math.PI) > weapon.meleeArc) return;
 
     const behindAngle = Math.abs(((ang - e.facing) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
     const isBackstab = behindAngle < 0.9 && e.aiState !== 'chase';
@@ -82,17 +104,18 @@ export function doMelee(): void {
       return;
     }
 
-    let dmg = p.atk;
-    if (isBackstab) { dmg = Math.floor(p.atk * 2.5); burst(ecx, ecy, '#ffaa00', 10, 4); setMsg('Backstab!', 1200); }
-    else if (inRecovery) { dmg = Math.floor(p.atk * 1.5); burst(ecx, ecy, '#ff8800', 7, 3); setMsg('Counter!', 1000); }
+    let dmg = baseDmg;
+    if (isBackstab) { dmg = Math.floor(baseDmg * weapon.backstabMul); burst(ecx, ecy, '#ffaa00', 10, 4); setMsg('Backstab!', 1200); }
+    else if (inRecovery) { dmg = Math.floor(baseDmg * 1.5); burst(ecx, ecy, '#ff8800', 7, 3); setMsg('Counter!', 1000); }
 
     e.hp -= dmg;
     const dmgCol = isBackstab ? '#ffdd00' : inRecovery ? '#ff8800' : '#fff';
     spawnDmg(ecx, ecy - e.h / 2, dmg, dmgCol);
-    e.vx = Math.cos(ang) * 4; e.vy = Math.sin(ang) * 4;
+    e.vx = Math.cos(ang) * weapon.knockback; e.vy = Math.sin(ang) * weapon.knockback;
     e.aiState = 'chase'; e.searchX = px; e.searchY = py; e._noiseCue = false;
     e.atkState = 'idle'; e.atkT = 30;
     burst(ecx, ecy, '#ff4444', 5); hit = true;
+    if (weapon.killResetOnMeleeKill && e.hp <= 0) resetChain = true;
     const vheal = vampireHeal(p);
     if (vheal > 0) p.hp = Math.min(p.hp + vheal, p.maxHp);
 
@@ -104,6 +127,7 @@ export function doMelee(): void {
   });
 
   if (hit) snd('hit');
+  if (resetChain) p.meleeCd = 0;
   G.meleeFlash = { angle: ang, timer: 10 };
   emitNoise(px, py, store.isSneaking ? 3 : 5, false);
 

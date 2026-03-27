@@ -1,4 +1,5 @@
 import { ctx } from '../canvas';
+import { WEAPONS } from '../constants';
 import type { Player } from '../types';
 import { roundRect } from './helpers';
 
@@ -51,10 +52,157 @@ function drawDrawnKatana(parryWindow: number, guarding: boolean): void {
   }
 }
 
+function drawSheathedDualTanto(x: number, y: number, ang: number): void {
+  for (const off of [-1.8, 1.8]) {
+    ctx.save();
+    ctx.translate(x + off, y + Math.abs(off) * 0.25);
+    ctx.rotate(ang + off * 0.04);
+    ctx.fillStyle = '#141414'; ctx.fillRect(-3.2, -1, 4.1, 2);
+    ctx.fillStyle = '#b59a6a'; ctx.fillRect(-2.6, -1, 0.7, 2);
+    ctx.fillStyle = '#2b2238';
+    ctx.beginPath();
+    ctx.moveTo(1.3, -0.95);
+    ctx.quadraticCurveTo(5.2, -1.8, 9, -0.6);
+    ctx.lineTo(9, 0.55);
+    ctx.quadraticCurveTo(5.4, 0.9, 1.3, 0.95);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawDrawnDualTanto(guarding: boolean): void {
+  for (const off of [-2.2, 2.2]) {
+    ctx.save();
+    ctx.translate(0, off * 0.25);
+    ctx.rotate(off * 0.07 + (guarding ? 0.08 * Math.sign(off) : 0));
+    ctx.fillStyle = '#141414'; ctx.fillRect(-2.8, -1, 4.2, 2);
+    ctx.fillStyle = '#b59a6a'; ctx.fillRect(-2.1, -1, 0.75, 2);
+    ctx.fillStyle = '#d8dde8';
+    ctx.beginPath();
+    ctx.moveTo(1.4, -0.85);
+    ctx.quadraticCurveTo(5.2, guarding ? -1.8 : -1.35, 9.6, -0.25);
+    ctx.lineTo(10.5, 0.05);
+    ctx.quadraticCurveTo(5.8, 0.7, 1.4, 0.85);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawSheathedNaginata(x: number, y: number, ang: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.fillStyle = '#6b4a28'; ctx.fillRect(-2, -1.1, 18, 2.2);
+  ctx.fillStyle = '#d9dee7';
+  ctx.beginPath();
+  ctx.moveTo(15.2, -1.2);
+  ctx.lineTo(20.4, -0.4);
+  ctx.lineTo(15.8, 1.1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawDrawnNaginata(guarding: boolean): void {
+  ctx.fillStyle = '#6b4a28'; ctx.fillRect(-3, -0.9, 20, 1.8);
+  ctx.fillStyle = '#d9dee7';
+  ctx.beginPath();
+  ctx.moveTo(16.5, -1.8);
+  ctx.quadraticCurveTo(22.8, -4.8, 28.8, -1.1);
+  ctx.lineTo(26.1, 0.05);
+  ctx.quadraticCurveTo(21.7, 1.8, 16.8, 1.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#f4f7fb'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(17.4, -0.45); ctx.quadraticCurveTo(22.6, -2.1, 27.4, -0.7); ctx.stroke();
+  if (guarding) {
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(11, -3); ctx.lineTo(18, 0); ctx.lineTo(11, 3); ctx.stroke();
+  }
+}
+
+function drawSheathedNodachi(x: number, y: number, ang: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.fillStyle = '#141414'; ctx.fillRect(-4.6, -1.3, 6, 2.6);
+  ctx.fillStyle = '#b59a6a';
+  for (let i = 0; i < 3; i++) ctx.fillRect(-3.7 + i * 1.7, -1.3, 0.75, 2.6);
+  ctx.fillStyle = '#2a1d3d';
+  ctx.beginPath();
+  ctx.moveTo(2.1, -1.3);
+  ctx.quadraticCurveTo(12.5, -4.8, 27.8, -2.1);
+  ctx.lineTo(27.8, 1.15);
+  ctx.quadraticCurveTo(13.2, 2.3, 2.1, 1.3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawDrawnNodachi(parryWindow: number, guarding: boolean): void {
+  ctx.fillStyle = '#151515'; ctx.fillRect(-3.3, -1.6, 6.3, 3.2);
+  ctx.fillStyle = '#c2a56b';
+  for (let i = 0; i < 3; i++) ctx.fillRect(-2.6 + i * 1.7, -1.6, 0.75, 3.2);
+  ctx.fillStyle = '#d8dde8';
+  ctx.beginPath();
+  ctx.moveTo(4, -1.15);
+  ctx.quadraticCurveTo(13.5, guarding ? -4.9 : -4.1, 28.8, guarding ? -1.9 : -1.2);
+  ctx.lineTo(33, -0.1);
+  ctx.lineTo(28.9, 0.82);
+  ctx.quadraticCurveTo(14.6, guarding ? 1.95 : 2.25, 4, 1.05);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#f7fbff'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(5.1, -0.45); ctx.quadraticCurveTo(14.5, -2.25, 28.8, -0.82); ctx.stroke();
+  if (parryWindow > 0) {
+    ctx.globalAlpha = 0.45 + Math.sin(Date.now() / 50) * 0.25;
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(5.4, -2.9); ctx.quadraticCurveTo(16.5, -7.1, 31.2, -2.1); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawGuardWeapon(p: Player): void {
+  switch (p.weapon) {
+    case 'dual_tanto': drawDrawnDualTanto(true); return;
+    case 'naginata': drawDrawnNaginata(true); return;
+    case 'nodachi': drawDrawnNodachi(p.parryWindow, true); return;
+    default: drawDrawnKatana(p.parryWindow, true);
+  }
+}
+
+function drawSwingWeapon(p: Player): void {
+  switch (p.weapon) {
+    case 'dual_tanto': drawDrawnDualTanto(false); return;
+    case 'naginata': drawDrawnNaginata(false); return;
+    case 'nodachi': drawDrawnNodachi(0, false); return;
+    default: drawDrawnKatana(0, false);
+  }
+}
+
+function drawSheathedWeapon(p: Player, x: number, y: number, faceRight: boolean): void {
+  switch (p.weapon) {
+    case 'dual_tanto':
+      drawSheathedDualTanto(x, y, faceRight ? 2.02 : 1.15);
+      return;
+    case 'naginata':
+      drawSheathedNaginata(x - (faceRight ? 2 : -2), y - 2.3, faceRight ? 2.22 : 0.95);
+      return;
+    case 'nodachi':
+      drawSheathedNodachi(x - (faceRight ? 1 : -1), y - 0.2, faceRight ? 2.05 : 1.08);
+      return;
+    default:
+      drawSheathedKatana(x, y, faceRight ? 1.95 : 1.2);
+  }
+}
+
 export function drawPlayer(p: Player, wAng: number, flash: boolean, swingT: number, faceRight: boolean): void {
   if (flash) return;
   const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
   const faceDir = faceRight ? 1 : -1;
+  const weapon = WEAPONS[p.weapon];
 
   if (p.dodgeT > 0) {
     ctx.globalAlpha = p.dodgeT / 14 * 0.35;
@@ -89,30 +237,50 @@ export function drawPlayer(p: Player, wAng: number, flash: boolean, swingT: numb
 
   if (p.blocking) {
     ctx.save();
-    ctx.translate(cx + faceDir * 7, cy + 0.5);
-    ctx.rotate(faceRight ? -1.6 : 1.6);
-    drawDrawnKatana(p.parryWindow, true);
+    if (p.weapon === 'naginata') {
+      ctx.translate(cx + faceDir * 5, cy - 0.2);
+      ctx.rotate(faceRight ? -0.38 : Math.PI + 0.38);
+    } else if (p.weapon === 'dual_tanto') {
+      ctx.translate(cx + faceDir * 6.2, cy + 0.8);
+      ctx.rotate(faceRight ? -0.42 : Math.PI + 0.42);
+    } else if (p.weapon === 'nodachi') {
+      ctx.translate(cx + faceDir * 8.2, cy + 0.3);
+      ctx.rotate(faceRight ? -1.28 : 1.28);
+    } else {
+      ctx.translate(cx + faceDir * 7, cy + 0.5);
+      ctx.rotate(faceRight ? -1.6 : 1.6);
+    }
+    drawGuardWeapon(p);
     ctx.restore();
   } else if (swingT > 0) {
     const swing = 1 - swingT / 10;
     const sweepSide = faceRight ? -1 : 1;
-    const startAng = wAng + sweepSide * 0.55;
-    const endAng = wAng - sweepSide * 0.18;
+    const sweepMul = p.weapon === 'nodachi' ? 1.45 : p.weapon === 'dual_tanto' ? 0.75 : p.weapon === 'naginata' ? 0.42 : 1;
+    const startAng = wAng + sweepSide * weapon.meleeArc * sweepMul;
+    const endAng = wAng - sweepSide * (p.weapon === 'dual_tanto' ? 0.12 : p.weapon === 'naginata' ? 0.04 : weapon.meleeArc * 0.25);
     const ang = startAng + (endAng - startAng) * swing;
-    const reach = 2.4 + swing * 1.2;
+    const reach = p.weapon === 'naginata' ? 8.5 + swing * 3.2 : p.weapon === 'nodachi' ? 4 + swing * 2.3 : p.weapon === 'dual_tanto' ? 1.8 + swing * 0.7 : 2.4 + swing * 1.2;
     const vx = Math.cos(ang) * reach;
     const vy = Math.sin(ang) * reach;
     ctx.save();
     ctx.translate(cx + vx, cy + vy);
     ctx.rotate(ang);
-    drawDrawnKatana(0, false);
+    drawSwingWeapon(p);
     ctx.restore();
   } else {
-    drawSheathedKatana(cx - faceDir * 4.5, p.y + p.h - 6.2, faceRight ? 1.95 : 1.2);
+    if (p.weapon === 'naginata') {
+      ctx.save();
+      ctx.translate(cx + Math.cos(wAng) * 3.5, cy + Math.sin(wAng) * 3.5);
+      ctx.rotate(wAng);
+      drawDrawnNaginata(false);
+      ctx.restore();
+    } else {
+      drawSheathedWeapon(p, cx - faceDir * 4.5, p.y + p.h - 6.2, faceRight);
+    }
   }
 }
 
-export function drawTownPlayer(p: Player, faceRight: boolean): void {
+export function drawTownPlayer(p: Player, wAng: number, faceRight: boolean): void {
   const cx = p.x + p.w / 2;
   const faceDir = faceRight ? 1 : -1;
   ctx.fillStyle = 'rgba(0,0,0,.18)';
@@ -129,5 +297,14 @@ export function drawTownPlayer(p: Player, faceRight: boolean): void {
   ctx.fillStyle = '#ddeeff';
   ctx.beginPath(); ctx.ellipse(cx + faceDir * 0.8, p.y + 5.5, 2.2, 1.25, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(cx + faceDir * 4.2, p.y + 5.5, 1.5, 1, 0, 0, Math.PI * 2); ctx.fill();
-  drawSheathedKatana(cx - faceDir * 4.5, p.y + p.h - 6.2, faceRight ? 1.95 : 1.2);
+  if (p.weapon === 'naginata') {
+    const cy = p.y + p.h / 2;
+    ctx.save();
+    ctx.translate(cx + Math.cos(wAng) * 3.5, cy + Math.sin(wAng) * 3.5);
+    ctx.rotate(wAng);
+    drawDrawnNaginata(false);
+    ctx.restore();
+  } else {
+    drawSheathedWeapon(p, cx - faceDir * 4.5, p.y + p.h - 6.2, faceRight);
+  }
 }

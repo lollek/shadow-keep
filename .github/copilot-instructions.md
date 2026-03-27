@@ -31,7 +31,11 @@ Browser-based 2D dungeon crawler in TypeScript + Vite. Single-page canvas game, 
 - 4 shops: SW (Swordsmith), SA (Herbalist), SF (Toolmaker), SS (Shrine — unlocked at floor 10)
 - Player-facing copy uses `shuriken` in UI, even though internal fields still use `arrows`
 - Player presentation now faces the mouse direction; if changing zoom/aiming logic, keep `RENDER_SCALE` and mouse-to-world conversions in sync
+- `Player.weapon` stores the currently selected weapon; Castle Gate now opens a run-start weapon choice before descent
 - Active items: `ActiveItemId` union, Q key, one at a time, cooldown-based
+- `WEAPONS` in constants.ts is the data source for melee cooldown/range/arc/damage tuning and Castle Gate selection UI
+- The yellow melee telegraph in draw/dungeon.ts should reflect the selected weapon's actual arc and reach; keep it synced with `WEAPONS`
+- Dual Tanto is offense-only in the current design and should not enter a blocking/parry state
 - Stackable passives: `itemCount()`, `toughMul()`, `vampireHeal()` in player.ts
 - Run stats: `S.run` tracks kills, goldEarned, startTime per descent
 - Personal bests: `sv.bestFloor`, `sv.bestKills`, `sv.bestGold` in SaveData

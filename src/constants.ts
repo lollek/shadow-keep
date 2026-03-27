@@ -1,4 +1,4 @@
-import type { ActiveItemId, Building, FloorTheme, Player, ShopItem } from './types';
+import type { ActiveItemId, Building, FloorTheme, Player, ShopItem, WeaponDef, WeaponId } from './types';
 
 export const T = 24;
 export const UI_HEIGHT = 62;
@@ -68,12 +68,67 @@ export const ACTIVE_ITEMS: Record<ActiveItemId, { name: string; icon: string; cd
   caltrops: { name: 'Caltrops', icon: '🔩', cd: 320, desc: 'Drop spikes that slow & damage' },
 };
 
+export const WEAPONS: Record<WeaponId, WeaponDef> = {
+  katana: {
+    name: 'Katana',
+    icon: '🗡️',
+    desc: 'Balanced cut with medium reach and a frontal arc.',
+    canBlock: true,
+    meleeCd: 28,
+    meleeRange: 3,
+    meleeArc: 1.2,
+    damageMul: 1,
+    backstabMul: 2.5,
+    knockback: 4,
+    killResetOnMeleeKill: false,
+  },
+  dual_tanto: {
+    name: 'Dual Tanto',
+    icon: '🗡️🗡️',
+    desc: 'Fast chain strikes. Shorter reach, stronger backstabs, no guard, melee kills reset your next attack.',
+    canBlock: false,
+    meleeCd: 18,
+    meleeRange: 2.25,
+    meleeArc: 1.05,
+    damageMul: 0.82,
+    backstabMul: 3.1,
+    knockback: 2.2,
+    killResetOnMeleeKill: true,
+  },
+  naginata: {
+    name: 'Naginata',
+    icon: '🔱',
+    desc: 'Long thrusting reach with a narrow attack lane and strong knockback.',
+    canBlock: true,
+    meleeCd: 38,
+    meleeRange: 4.6,
+    meleeArc: 0.42,
+    damageMul: 1.08,
+    backstabMul: 2.2,
+    knockback: 5.8,
+    killResetOnMeleeKill: false,
+  },
+  nodachi: {
+    name: 'Nodachi',
+    icon: '⚔️',
+    desc: 'Slow, sweeping cuts with a huge arc, long reach, and heavy damage.',
+    canBlock: true,
+    meleeCd: 46,
+    meleeRange: 3.6,
+    meleeArc: 1.62,
+    damageMul: 1.75,
+    backstabMul: 2.7,
+    knockback: 6.5,
+    killResetOnMeleeKill: false,
+  },
+};
+
 export const BLDGS: Building[] = [
   { id: 'weapon', label: 'Swordsmith', color: '#2a1008', roof: '#6a2a10', icon: '⚔', x: 0.12, desc: 'Blades & speed' },
   { id: 'apoth', label: 'Herbalist', color: '#0a1a0a', roof: '#1a5a1a', icon: '🌿', x: 0.32, desc: 'Healing & HP' },
   { id: 'fletcher', label: 'Toolmaker', color: '#0a1020', roof: '#1a3060', icon: '✦', x: 0.52, desc: 'Shuriken & tricks' },
   { id: 'shrine', label: 'Shrine', color: '#1a0a20', roof: '#4a1a6a', icon: '⛩', x: 0.72, desc: 'Actives & upgrades' },
-  { id: 'dungeon', label: 'Castle Gate', color: '#1a0808', roof: '#550000', icon: '⛩', x: 0.5, desc: 'Enter the keep', yMul: 0.78 },
+  { id: 'dungeon', label: 'Castle Gate', color: '#1a0808', roof: '#550000', icon: '⛩', x: 0.5, desc: 'Choose a weapon & enter', yMul: 0.78 },
 ];
 
 export const SW: ShopItem[] = [

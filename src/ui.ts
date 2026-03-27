@@ -1,5 +1,5 @@
 import { S, sv, store } from './state';
-import { ACTIVE_ITEMS } from './constants';
+import { ACTIVE_ITEMS, WEAPONS } from './constants';
 import type { ActiveItemId } from './types';
 
 export function setMsg(t: string, d = 2200): void {
@@ -31,6 +31,7 @@ export function updateHUD(): void {
 
   document.getElementById('gld')!.textContent = String(S.gold);
   document.getElementById('atk')!.textContent = String(p.atk);
+  document.getElementById('wpn')!.textContent = WEAPONS[p.weapon].name;
   document.getElementById('arr')!.textContent = String(p.arrows);
   document.getElementById('loc')!.textContent =
     S.mode === 'town' ? 'Town' : ('Floor ' + S.depth);
@@ -55,7 +56,7 @@ export function updateHUD(): void {
   }
 }
 
-const ALL_PANELS = ['titlePanel', 'deathPanel', 'cpPanel', 'shopPanel'];
+const ALL_PANELS = ['titlePanel', 'deathPanel', 'cpPanel', 'shopPanel', 'weaponPanel'];
 
 export function openHelp(): void {
   store.helpOpen = true;

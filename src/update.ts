@@ -7,7 +7,7 @@ import { snd } from './audio';
 import { tickMsg, updateHUD, setMsg, showPanel } from './ui';
 import { writeSv } from './save';
 import { mkEnemy } from './enemies';
-import { burst, emitNoise } from './combat';
+import { burst, emitNoise, spawnDmg } from './combat';
 import { onFloorExit } from './game-flow';
 import type { Particle, TileMap } from './types';
 
@@ -95,6 +95,7 @@ export function updateDungeon(): void {
     if (currentTile === TILE_SPIKES && G.spikeCd <= 0 && p.invincible <= 0) {
       const dmg = 5 + G.floor;
       p.hp -= dmg;
+      spawnDmg(p.x + p.w / 2, p.y, dmg, '#ff4444');
       p.invincible = 10;
       G.spikeCd = 50;
       snd('hurt'); shake(3);
@@ -277,7 +278,9 @@ export function updateDungeon(): void {
             if (p.stamina <= 0) { setMsg('Guard broken!', 1500); p.invincible = 30; }
           } else {
             const dmgMul2 = p.items.includes('tough') ? 0.8 : 1;
-            p.hp -= e.atk * dmgMul2;
+            const meleeDmg = e.atk * dmgMul2;
+            p.hp -= meleeDmg;
+            spawnDmg(px, p.y, meleeDmg, '#ff3300');
             p.invincible = 20; snd('hurt'); shake(e.tier === 'boss' ? 10 : 5);
             burst(px, py, '#ff3300', 6, 3);
             e.atkState = 'recovery'; e.atkT = e.strikeDur || 8;
@@ -355,7 +358,7 @@ export function updateDungeon(): void {
         emitNoise(pr.x, pr.y, wallNoiseR, true);
         if (pr.explosive) {
           snd('explode'); burst(pr.x, pr.y, '#ff8800', 14, 5);
-          G.enemies.forEach(e2 => { if (Math.hypot((e2.x + e2.w / 2) - pr.x, (e2.y + e2.h / 2) - pr.y) < T * 3) e2.hp -= pr.dmg * 0.5; });
+          G.enemies.forEach(e2 => { if (Math.hypot((e2.x + e2.w / 2) - pr.x, (e2.y + e2.h / 2) - pr.y) < T * 3) { e2.hp -= pr.dmg * 0.5; spawnDmg(e2.x + e2.w / 2, e2.y, pr.dmg * 0.5, '#ff8800'); } });
           breakWallsInRadius(pr.x, pr.y, 3, map);
         }
       } else if (pr.owner === 'enemy' || pr.reflected) {
@@ -368,10 +371,11 @@ export function updateDungeon(): void {
       for (let i = G.enemies.length - 1; i >= 0; i--) {
         if (ov(pr, G.enemies[i])) {
           const e2 = G.enemies[i];
-          e2.hp -= pr.dmg; e2.aiState = 'chase'; e2.searchX = px; e2.searchY = py; e2._noiseCue = false;
+          e2.hp -= pr.dmg; spawnDmg(e2.x + e2.w / 2, e2.y, pr.dmg, '#fff');
+          e2.aiState = 'chase'; e2.searchX = px; e2.searchY = py; e2._noiseCue = false;
           if (pr.explosive) {
             snd('explode'); burst(pr.x, pr.y, '#ff8800', 12, 4);
-            G.enemies.forEach(e3 => { if (Math.hypot((e3.x + e3.w / 2) - pr.x, (e3.y + e3.h / 2) - pr.y) < T * 3) e3.hp -= pr.dmg * 0.5; });
+            G.enemies.forEach(e3 => { if (Math.hypot((e3.x + e3.w / 2) - pr.x, (e3.y + e3.h / 2) - pr.y) < T * 3) { e3.hp -= pr.dmg * 0.5; spawnDmg(e3.x + e3.w / 2, e3.y, pr.dmg * 0.5, '#ff8800'); } });
             breakWallsInRadius(pr.x, pr.y, 3, map);
           } else {
             burst(pr.x, pr.y, pr.reflected ? '#ffd700' : '#ffcc00', 5, 2);
@@ -388,7 +392,9 @@ export function updateDungeon(): void {
           burst(pr.x, pr.y, '#4488ff', 4, 2); snd('hit'); shake(3);
           return false;
         }
-        p.hp -= pr.dmg * (pr.boss ? 1.3 : 1) * dmgMul;
+        const prDmg = pr.dmg * (pr.boss ? 1.3 : 1) * dmgMul;
+        p.hp -= prDmg;
+        spawnDmg(px, p.y, prDmg, '#ff3300');
         p.invincible = 20; snd('hurt'); shake(pr.boss ? 8 : 4);
         burst(pr.x, pr.y, '#ff3300', 5, 3); return false;
       }
@@ -397,6 +403,7 @@ export function updateDungeon(): void {
         if (ef === pr.ownerId) continue;
         if (ov(pr, ef)) {
           ef.hp -= pr.dmg * 0.8;
+          spawnDmg(ef.x + ef.w / 2, ef.y, pr.dmg * 0.8, '#ff8844');
           burst(pr.x, pr.y, '#ff8844', 4, 2);
           snd('hit');
           ef.aiState = 'suspect'; ef.suspectT = 40;
@@ -430,6 +437,10 @@ export function updateDungeon(): void {
     if (pt.type === 'ripple') {
       pt.r += pt.maxR * 0.06;
       pt.life -= 0.045;
+      return pt.life > 0;
+    }
+    if (pt.type === 'dmg') {
+      pt.y += pt.vy; pt.life -= 0.025;
       return pt.life > 0;
     }
     pt.x += pt.vx; pt.y += pt.vy; pt.vx *= 0.9; pt.vy *= 0.9; pt.life -= 0.04;

@@ -116,6 +116,16 @@ export function drawDungeon(): void {
       ctx.globalAlpha = 1;
       return;
     }
+    if (pt.type === 'dmg') {
+      ctx.globalAlpha = Math.max(0, pt.life);
+      ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#000';
+      ctx.fillText(pt.text, pt.x + 1, pt.y + 1);
+      ctx.fillStyle = pt.color;
+      ctx.fillText(pt.text, pt.x, pt.y);
+      ctx.globalAlpha = 1;
+      return;
+    }
     ctx.globalAlpha = Math.max(0, pt.life);
     ctx.fillStyle = pt.color;
     const s = 1.5 + pt.life * 2;

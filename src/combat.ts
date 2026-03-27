@@ -1,4 +1,4 @@
-import type { Particle } from './types';
+import type { Particle, DmgParticle } from './types';
 import { store } from './state';
 import { T, UI_HEIGHT, TILE_BREAKABLE, TILE_FLOOR } from './constants';
 import { snd } from './audio';
@@ -11,6 +11,15 @@ export function burst(x: number, y: number, col: string, n: number, sp = 3): voi
     const s = 0.4 + Math.random() * sp;
     G.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, color: col });
   }
+}
+
+export function spawnDmg(x: number, y: number, dmg: number, color = '#fff'): void {
+  const G = store.G!;
+  G.particles.push({
+    type: 'dmg', x: x + (Math.random() - 0.5) * 8, y,
+    vy: -0.8 - Math.random() * 0.4,
+    life: 1, text: String(Math.round(dmg)), color,
+  } as DmgParticle as Particle);
 }
 
 export function emitNoise(nx: number, ny: number, noiseR: number, investigateSource: boolean): void {
@@ -75,6 +84,8 @@ export function doMelee(): void {
     else if (inRecovery) { dmg = Math.floor(p.atk * 1.5); burst(ecx, ecy, '#ff8800', 7, 3); setMsg('Counter!', 1000); }
 
     e.hp -= dmg;
+    const dmgCol = isBackstab ? '#ffdd00' : inRecovery ? '#ff8800' : '#fff';
+    spawnDmg(ecx, ecy - e.h / 2, dmg, dmgCol);
     e.vx = Math.cos(ang) * 4; e.vy = Math.sin(ang) * 4;
     e.aiState = 'chase'; e.searchX = px; e.searchY = py; e._noiseCue = false;
     e.atkState = 'idle'; e.atkT = 30;

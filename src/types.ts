@@ -77,7 +77,13 @@ export interface RippleParticle {
   life: number;
 }
 
-export type Particle = NormalParticle | RippleParticle;
+export interface DmgParticle {
+  type: 'dmg';
+  x: number; y: number; vy: number;
+  life: number; text: string; color: string;
+}
+
+export type Particle = NormalParticle | RippleParticle | DmgParticle;
 
 export interface Room {
   x: number; y: number; w: number; h: number;

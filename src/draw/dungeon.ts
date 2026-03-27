@@ -141,6 +141,19 @@ export function drawDungeon(): void {
     drawEnemy(e);
   });
 
+  // Caltrops
+  G.caltrops.forEach(c => {
+    ctx.globalAlpha = Math.min(1, c.life / 60);
+    ctx.fillStyle = '#777';
+    const cx = c.x + c.w / 2, cy = c.y + c.h / 2;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + 0.3;
+      const r = 5;
+      ctx.fillRect(cx + Math.cos(a) * r - 1, cy + Math.sin(a) * r - 1, 3, 3);
+    }
+    ctx.globalAlpha = 1;
+  });
+
   // Projectiles
   G.projectiles.forEach(drawProjectile);
 

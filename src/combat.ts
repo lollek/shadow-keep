@@ -1,8 +1,9 @@
 import type { Particle, DmgParticle } from './types';
 import { store } from './state';
-import { T, UI_HEIGHT, TILE_BREAKABLE, TILE_FLOOR } from './constants';
+import { T, UI_HEIGHT, TILE_BREAKABLE, TILE_FLOOR, ACTIVE_ITEMS } from './constants';
 import { snd } from './audio';
 import { setMsg, updateHUD } from './ui';
+import { moveEntity, ov } from './collision';
 
 export function burst(x: number, y: number, col: string, n: number, sp = 3): void {
   const G = store.G!;
@@ -170,4 +171,69 @@ export function doDodge(): void {
   p.stamina = Math.max(0, p.stamina - 20);
   p.invincible = 14;
   snd('melee');
+}
+
+export function useActiveItem(): void {
+  const G = store.G!;
+  const p = G.player;
+  if (!p.activeItem || p.activeCd > 0 || p.dodgeT > 0) return;
+
+  const def = ACTIVE_ITEMS[p.activeItem];
+  p.activeCd = def.cd;
+
+  const px = p.x + p.w / 2, py = p.y + p.h / 2;
+  const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - UI_HEIGHT;
+  const ang = Math.atan2(wy - py, wx - px);
+
+  if (p.activeItem === 'smoke') {
+    // Smoke bomb: reset all enemies in radius to patrol, spawn visual
+    const radius = T * 6;
+    burst(px, py, '#888888', 20, 5);
+    burst(px, py, '#aaaaaa', 15, 4);
+    G.particles.push({ type: 'ripple', x: px, y: py, r: 0, maxR: radius, life: 1 } as Particle);
+    G.enemies.forEach(e => {
+      const dist = Math.hypot((e.x + e.w / 2) - px, (e.y + e.h / 2) - py);
+      if (dist < radius) {
+        e.aiState = 'patrol'; e.suspectT = 0; e.searchT = 0;
+        e._noiseCue = false;
+      }
+    });
+    snd('explode');
+    setMsg('Smoke bomb!', 1200);
+  } else if (p.activeItem === 'dash') {
+    // Dash strike: lunge toward mouse, deal 2x damage to first enemy hit
+    const dashDist = T * 4;
+    const steps = 16;
+    const stepX = Math.cos(ang) * dashDist / steps;
+    const stepY = Math.sin(ang) * dashDist / steps;
+    let hitEnemy = false;
+    for (let i = 0; i < steps; i++) {
+      moveEntity(p, stepX, stepY, G.map);
+      if (!hitEnemy) {
+        for (const e of G.enemies) {
+          if (ov(p, e)) {
+            const dmg = Math.floor(p.atk * 2);
+            e.hp -= dmg;
+            spawnDmg(e.x + e.w / 2, e.y, dmg, '#ffdd00');
+            burst(e.x + e.w / 2, e.y + e.h / 2, '#ffdd00', 10, 4);
+            e.aiState = 'chase'; e._noiseCue = false;
+            e.vx = Math.cos(ang) * 6; e.vy = Math.sin(ang) * 6;
+            hitEnemy = true;
+            break;
+          }
+        }
+      }
+    }
+    p.invincible = 10;
+    burst(px, py, '#4488ff', 8, 3);
+    snd('melee');
+    setMsg(hitEnemy ? 'Dash strike!' : 'Dash!', 1000);
+  } else if (p.activeItem === 'caltrops') {
+    // Drop caltrops behind player
+    G.caltrops.push({ x: px - 8, y: py - 8, w: 16, h: 16, life: 600 });
+    burst(px, py, '#888', 6, 2);
+    snd('hit');
+    setMsg('Caltrops deployed!', 1000);
+  }
+  updateHUD();
 }

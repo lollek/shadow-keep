@@ -4,6 +4,7 @@ export type AIState = 'patrol' | 'suspect' | 'chase' | 'search';
 export type AttackState = 'idle' | 'windup' | 'strike' | 'recovery';
 export type DungeonMode = 'explore' | 'boss';
 export type ItemId = 'vampire' | 'tough' | 'explosive' | 'fastarrows';
+export type ActiveItemId = 'smoke' | 'dash' | 'caltrops';
 
 /** Tile values: 0=wall, 1=floor, 2=exit, 3=chest, 4=water, 5=spikes, 6=breakable wall */
 export type TileValue = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -32,6 +33,8 @@ export interface Player extends Rect {
   blocking: boolean; parryWindow: number;
   dodgeT: number; dodgeDx: number; dodgeDy: number;
   dodgeCd: number; guardBreaks: number;
+  activeItem: ActiveItemId | null;
+  activeCd: number;
 }
 
 export interface Enemy extends Rect {
@@ -96,6 +99,10 @@ export interface MeleeFlash {
   angle: number; timer: number;
 }
 
+export interface Caltrop extends Rect {
+  life: number;
+}
+
 export interface DungeonState {
   mode: DungeonMode;
   floor: number;
@@ -107,6 +114,7 @@ export interface DungeonState {
   enemies: Enemy[];
   projectiles: Projectile[];
   particles: Particle[];
+  caltrops: Caltrop[];
   fog: Uint8Array[];
   keys: Record<string, boolean>;
   mouse: { x: number; y: number };

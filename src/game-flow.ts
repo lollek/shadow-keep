@@ -53,7 +53,7 @@ function initDungeonFloor(floor: number): void {
   const theme = getTheme(floor);
   store.G = {
     mode: 'explore', floor, map, rooms, startRoom, exitRoom,
-    player: p, enemies, projectiles: [], particles: [],
+    player: p, enemies, projectiles: [], particles: [], caltrops: [],
     fog, keys: {}, mouse: { x: 0, y: 0 },
     cam: { x: 0, y: 0 },
     meleeFlash: null,
@@ -105,7 +105,7 @@ function initBossFloor(floor: number): void {
 
   store.G = {
     mode: 'boss', floor, map, rooms: [startRoom], startRoom, exitRoom,
-    player: p, enemies: [boss], projectiles: [], particles: [],
+    player: p, enemies: [boss], projectiles: [], particles: [], caltrops: [],
     fog, keys: {}, mouse: { x: 0, y: 0 },
     cam: { x: 0, y: 0 },
     meleeFlash: null,

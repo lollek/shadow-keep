@@ -10,5 +10,6 @@ export function makePlayer(): Player {
     blocking: false, parryWindow: 0,
     dodgeT: 0, dodgeDx: 0, dodgeDy: 0,
     dodgeCd: 0, guardBreaks: 0,
+    activeItem: null, activeCd: 0,
   };
 }

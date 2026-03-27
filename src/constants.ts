@@ -1,4 +1,4 @@
-import type { Building, FloorTheme, Player, ShopItem } from './types';
+import type { ActiveItemId, Building, FloorTheme, Player, ShopItem } from './types';
 
 export const T = 24;
 export const UI_HEIGHT = 62;
@@ -52,6 +52,13 @@ export function getTheme(floor: number): FloorTheme {
   if (floor >= 5) return THEMES[1];
   return THEMES[0];
 }
+
+// Active item cooldowns (in frames, 60fps ≈ 16ms/frame)
+export const ACTIVE_ITEMS: Record<ActiveItemId, { name: string; icon: string; cd: number; desc: string }> = {
+  smoke: { name: 'Smoke Bomb', icon: '💨', cd: 480, desc: 'Break enemy LOS in radius' },
+  dash: { name: 'Dash Strike', icon: '⚡', cd: 240, desc: 'Lunge forward for 2x damage' },
+  caltrops: { name: 'Caltrops', icon: '🔩', cd: 320, desc: 'Drop spikes that slow & damage' },
+};
 
 export const BLDGS: Building[] = [
   { id: 'weapon', label: 'Swordsmith', color: '#2a1008', roof: '#6a2a10', icon: '⚔', x: 0.15, desc: 'Blades & speed' },

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateMap } from '../map-gen';
 import { tileCollide } from '../collision';
-import { getTheme, MAP_W, MAP_H, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_BREAKABLE } from '../constants';
+import { getTheme, MAP_W, MAP_H, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_BREAKABLE, ACTIVE_ITEMS } from '../constants';
 import type { TileMap } from '../types';
 
 describe('getTheme', () => {
@@ -118,5 +118,28 @@ describe('tileCollide with breakable walls', () => {
     const map = makeFloorMap(10, 10);
     map[3][3] = TILE_CHEST;
     expect(tileCollide({ x: 72, y: 72, w: 20, h: 20 }, map)).toBe(false);
+  });
+});
+
+describe('ACTIVE_ITEMS', () => {
+  it('defines all three active items', () => {
+    expect(ACTIVE_ITEMS.smoke).toBeDefined();
+    expect(ACTIVE_ITEMS.dash).toBeDefined();
+    expect(ACTIVE_ITEMS.caltrops).toBeDefined();
+  });
+
+  it('each has name, icon, cd, and desc', () => {
+    for (const key of ['smoke', 'dash', 'caltrops'] as const) {
+      const item = ACTIVE_ITEMS[key];
+      expect(item.name).toBeTruthy();
+      expect(item.icon).toBeTruthy();
+      expect(item.cd).toBeGreaterThan(0);
+      expect(item.desc).toBeTruthy();
+    }
+  });
+
+  it('smoke bomb has the longest cooldown', () => {
+    expect(ACTIVE_ITEMS.smoke.cd).toBeGreaterThan(ACTIVE_ITEMS.dash.cd);
+    expect(ACTIVE_ITEMS.smoke.cd).toBeGreaterThan(ACTIVE_ITEMS.caltrops.cd);
   });
 });

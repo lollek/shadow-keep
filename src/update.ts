@@ -60,6 +60,7 @@ export function updateDungeon(): void {
   if (p.invincible > 0) p.invincible--;
   if (p.meleeCd > 0) p.meleeCd--;
   if (p.arrowCd > 0) p.arrowCd--;
+  if (p.activeCd > 0) p.activeCd--;
   if (G.meleeFlash && G.meleeFlash.timer > 0) G.meleeFlash.timer--;
 
   updateCamera();
@@ -432,6 +433,23 @@ export function updateDungeon(): void {
     }
   });
   G.enemies = G.enemies.filter(e => e.hp > 0);
+
+  // Caltrops: damage + slow enemies
+  G.caltrops = G.caltrops.filter(c => {
+    c.life--;
+    G.enemies.forEach(e => {
+      if (ov(c, e)) {
+        e.vx *= 0.4; e.vy *= 0.4;
+        if (c.life % 30 === 0) {
+          const cdmg = 3 + G.floor;
+          e.hp -= cdmg;
+          spawnDmg(e.x + e.w / 2, e.y, cdmg, '#aaaaaa');
+          burst(e.x + e.w / 2, e.y + e.h / 2, '#888', 3, 1.5);
+        }
+      }
+    });
+    return c.life > 0;
+  });
 
   G.particles = G.particles.filter((pt: Particle) => {
     if (pt.type === 'ripple') {

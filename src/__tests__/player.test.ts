@@ -32,6 +32,12 @@ describe('makePlayer', () => {
     expect(p.dodgeT).toBe(0);
     expect(p.dodgeCd).toBe(0);
     expect(p.parryWindow).toBe(0);
+    expect(p.activeCd).toBe(0);
+  });
+
+  it('starts with no active item', () => {
+    const p = makePlayer();
+    expect(p.activeItem).toBeNull();
   });
 
   it('creates independent instances', () => {

@@ -3,7 +3,7 @@ import { canvas, resize } from './canvas';
 import { loadSv } from './save';
 import { hideAll } from './ui';
 import { makePlayer } from './player';
-import { doMelee, doShoot, doDodge } from './combat';
+import { doMelee, doShoot, doDodge, useActiveItem } from './combat';
 import { updateDungeon } from './update';
 import { returnToTown, nextFloor } from './game-flow';
 import { initTown, updateTown } from './town';
@@ -53,6 +53,7 @@ document.addEventListener('keydown', e => {
   if (S.mode === 'dungeon' && store.G) {
     store.G.keys[e.code] = true;
     if (e.code === 'KeyE') doShoot();
+    if (e.code === 'KeyQ') useActiveItem();
     if (e.code === 'KeyM') store.G.showMap = !store.G.showMap;
     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') store.G.sneaking = !store.G.sneaking;
     if (e.code === 'Space') doDodge();

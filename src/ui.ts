@@ -1,4 +1,6 @@
 import { S, sv, store } from './state';
+import { ACTIVE_ITEMS } from './constants';
+import type { ActiveItemId } from './types';
 
 export function setMsg(t: string, d = 2200): void {
   document.getElementById('msg')!.textContent = t;
@@ -33,6 +35,24 @@ export function updateHUD(): void {
   document.getElementById('loc')!.textContent =
     S.mode === 'town' ? 'Town' : ('Floor ' + S.depth);
   document.getElementById('deep')!.textContent = String(sv.deepest || '—');
+
+  const slotEl = document.getElementById('activeSlot')!;
+  if (p.activeItem) {
+    const def = ACTIVE_ITEMS[p.activeItem as ActiveItemId];
+    slotEl.style.display = '';
+    document.getElementById('activeIcon')!.textContent = def.icon;
+    document.getElementById('activeName')!.textContent = def.name;
+    const cdEl = document.getElementById('activeCd')!;
+    if (p.activeCd > 0) {
+      cdEl.textContent = '(' + Math.ceil(p.activeCd / 60) + 's)';
+      cdEl.style.color = '#888';
+    } else {
+      cdEl.textContent = '[Q]';
+      cdEl.style.color = '#ffd700';
+    }
+  } else {
+    slotEl.style.display = 'none';
+  }
 }
 
 const ALL_PANELS = ['titlePanel', 'deathPanel', 'cpPanel', 'shopPanel'];

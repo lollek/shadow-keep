@@ -16,7 +16,7 @@ export function initTown(): void {
   p.x = W / 2 - p.w / 2; p.y = H * 0.8;
   store.TW = { keys: {}, mouse: { x: 0, y: 0 } };
   hideAll();
-  document.getElementById('ctrl')!.textContent = 'WASD to walk · F or Space to enter';
+  document.getElementById('ctrl')!.textContent = 'WASD to walk · F or Space to enter · H or ? for help';
   snd('town'); updateHUD();
 }
 
@@ -65,7 +65,7 @@ function enterBuilding(id: string): void {
   const shops: Record<string, [string, string, ShopItem[]]> = {
     weapon: ['Swordsmith', 'Blades & Speed', SW],
     apoth: ['Herbalist', 'Healing & HP', SA],
-    fletcher: ['Bowyer', 'Arrows & Ranged', SF],
+    fletcher: ['Toolmaker', 'Shuriken & Tricks', SF],
     shrine: ['Shrine', 'Actives & Upgrades', SS],
   };
   if (shops[id]) openShop(...shops[id]);

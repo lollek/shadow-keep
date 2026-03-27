@@ -19,6 +19,7 @@ export function startDescent(): void {
 
 export function returnToTown(): void {
   sv.gold = S.gold; writeSv();
+  store.pauseKind = null;
   S.mode = 'town';
   hideAll(); initTown();
   startMusic('Town');
@@ -85,7 +86,7 @@ function initDungeonFloor(floor: number): void {
   updateCamera(); updateFog();
   startMusic(theme.name);
   setMsg('Floor ' + floor + ' — ' + theme.name, 2500);
-  document.getElementById('ctrl')!.textContent = 'WASD · Click=Melee · E=Shoot · M=Map';
+  document.getElementById('ctrl')!.textContent = 'WASD · Click=Melee · E=Throw · M=Map · H/?=Help';
   updateHUD();
 }
 
@@ -137,8 +138,8 @@ function initBossFloor(floor: number): void {
   };
   updateCamera();
   startMusic(getTheme(floor).name);
-  snd('boss'); setMsg('★ BOSS FLOOR ' + floor + ' ★', 3000);
-  document.getElementById('ctrl')!.textContent = 'WASD · Click=Melee · E=Shoot';
+  snd('boss'); setMsg('★ BOSS FLOOR ' + floor + ' ★ Exit sealed until the boss falls.', 3200);
+  document.getElementById('ctrl')!.textContent = 'WASD · Click=Melee · E=Throw · H/?=Help';
   updateHUD();
 }
 
@@ -149,6 +150,7 @@ export function onFloorExit(): void {
   if (G.floor % 5 === 0) {
     const bonus = G.mode === 'boss' ? 60 : 40;
     S.gold += bonus; sv.gold = S.gold; writeSv();
+    store.pauseKind = 'checkpoint';
     S.mode = 'pause';
     document.getElementById('cpTitle')!.textContent = 'Floor ' + G.floor + ' Complete!';
     document.getElementById('cpMsg')!.innerHTML =

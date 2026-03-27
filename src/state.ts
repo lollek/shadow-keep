@@ -16,6 +16,8 @@ export const store = {
   fadeDir: 0 as -1 | 0 | 1,
   fadeText: '',
   fadeCb: null as (() => void) | null,
+  pauseKind: null as 'focus' | 'checkpoint' | null,
+  helpOpen: false,
 };
 
 export function shake(a: number): void {

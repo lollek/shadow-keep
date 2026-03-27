@@ -2,7 +2,53 @@ import { ctx } from '../canvas';
 import type { Player } from '../types';
 import { roundRect } from './helpers';
 
-export function drawPlayer(p: Player, wAng: number, flash: boolean): void {
+function drawSheathedKatana(x: number, y: number, ang: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.fillStyle = '#171717'; ctx.fillRect(-5, -2, 9, 4);
+  ctx.fillStyle = '#9b7b4a';
+  for (let i = 0; i < 3; i++) ctx.fillRect(-4 + i * 3, -2, 1, 4);
+  ctx.fillStyle = '#b08d57';
+  ctx.beginPath(); ctx.arc(5, 0, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#241d38';
+  ctx.beginPath();
+  ctx.moveTo(6, -2);
+  ctx.quadraticCurveTo(16, -4, 28, -1.5);
+  ctx.lineTo(28, 1.5);
+  ctx.quadraticCurveTo(16, 3.8, 6, 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#655580'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(7, 0); ctx.quadraticCurveTo(16, -1.5, 26, 0); ctx.stroke();
+  ctx.restore();
+}
+
+function drawDrawnKatana(parryWindow: number, guarding: boolean): void {
+  ctx.fillStyle = '#171717'; ctx.fillRect(-2, -3, 10, 6);
+  ctx.fillStyle = '#9b7b4a';
+  for (let i = 0; i < 3; i++) ctx.fillRect(-1 + i * 3, -3, 1, 6);
+  ctx.fillStyle = '#b08d57';
+  ctx.beginPath(); ctx.arc(9, 0, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#d8dde8';
+  ctx.beginPath();
+  ctx.moveTo(10, -2.2);
+  ctx.quadraticCurveTo(22, guarding ? -6 : -4.5, 37, guarding ? -2 : -0.5);
+  ctx.lineTo(37, guarding ? 1.7 : 1.3);
+  ctx.quadraticCurveTo(22, guarding ? 3.4 : 3.8, 10, 1.8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#f7fbff'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(12, -0.2); ctx.quadraticCurveTo(23, guarding ? -2.6 : -2, 35, -0.3); ctx.stroke();
+  if (parryWindow > 0) {
+    ctx.globalAlpha = 0.45 + Math.sin(Date.now() / 50) * 0.25;
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(10, -4); ctx.quadraticCurveTo(24, -9, 39, -2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+export function drawPlayer(p: Player, wAng: number, flash: boolean, drawn: boolean): void {
   if (flash) return;
   const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
 
@@ -34,55 +80,21 @@ export function drawPlayer(p: Player, wAng: number, flash: boolean): void {
   ctx.beginPath(); ctx.ellipse(cx - 2.5, p.y + 5.5, 2, 1.2, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(cx + 2.5, p.y + 5.5, 2, 1.2, 0, 0, Math.PI * 2); ctx.fill();
 
-  ctx.save(); ctx.translate(cx, cy); ctx.rotate(wAng);
   if (p.blocking) {
-    // Katana-forward guard pose (replaces shield visual)
-    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(6, -2, 8, 4); // tsuka
-    ctx.fillStyle = '#b08d57';
-    ctx.beginPath(); ctx.arc(15, 0, 3, 0, Math.PI * 2); ctx.fill(); // tsuba
-    ctx.fillStyle = '#d8dde8';
-    ctx.beginPath();
-    ctx.moveTo(16, -2);
-    ctx.quadraticCurveTo(27, -5, 40, -1);
-    ctx.lineTo(40, 1.5);
-    ctx.quadraticCurveTo(27, 4, 16, 1.5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#f1f5ff'; ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(18, -0.2); ctx.quadraticCurveTo(28, -2.2, 38, -0.2); ctx.stroke();
-    if (p.parryWindow > 0) {
-      ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 50) * 0.4;
-      ctx.fillStyle = '#ffd700';
-      ctx.beginPath();
-      ctx.moveTo(16, -3);
-      ctx.quadraticCurveTo(28, -7, 41, -1.5);
-      ctx.lineTo(41, 2.5);
-      ctx.quadraticCurveTo(28, 6, 16, 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    ctx.save();
+    ctx.translate(cx + 1, cy + 1);
+    ctx.rotate(wAng - 0.55);
+    drawDrawnKatana(p.parryWindow, true);
+    ctx.restore();
+  } else if (drawn) {
+    ctx.save();
+    ctx.translate(cx + 1, cy + 1);
+    ctx.rotate(wAng - 0.1);
+    drawDrawnKatana(0, false);
+    ctx.restore();
   } else {
-    // Sheathed katana at hip when not actively guarding
-    ctx.fillStyle = '#171717'; ctx.fillRect(4, -2, 9, 4); // tsuka
-    ctx.fillStyle = '#9b7b4a';
-    for (let i = 0; i < 3; i++) {
-      ctx.fillRect(5 + i * 3, -2, 1, 4); // tsuka wrap accents
-    }
-    ctx.fillStyle = '#b08d57';
-    ctx.beginPath(); ctx.arc(14, 0, 2.5, 0, Math.PI * 2); ctx.fill(); // tsuba
-    ctx.fillStyle = '#2a2240';
-    ctx.beginPath();
-    ctx.moveTo(15, -2);
-    ctx.quadraticCurveTo(25, -4, 34, -1.2);
-    ctx.lineTo(34, 1.2);
-    ctx.quadraticCurveTo(25, 3.5, 15, 2);
-    ctx.closePath();
-    ctx.fill(); // saya
-    ctx.strokeStyle = '#5d4b7a'; ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(16, 0); ctx.quadraticCurveTo(24, -1.5, 32, 0); ctx.stroke();
+    drawSheathedKatana(cx + 4, p.y + p.h - 7, 0.8);
   }
-  ctx.restore();
 }
 
 export function drawTownPlayer(p: Player): void {
@@ -98,7 +110,5 @@ export function drawTownPlayer(p: Player): void {
   ctx.fillStyle = '#ddeeff';
   ctx.beginPath(); ctx.ellipse(cx - 2.5, p.y + 5.5, 2, 1.2, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(cx + 2.5, p.y + 5.5, 2, 1.2, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#ddddee'; ctx.fillRect(p.x + p.w + 1, p.y + 5, 18, 2);
-  ctx.fillStyle = '#1a1a1a'; ctx.fillRect(p.x + p.w - 2, p.y + 4, 5, 10);
-  ctx.fillStyle = '#cc8800'; ctx.fillRect(p.x + p.w + 2, p.y + 3, 2, 7);
+  drawSheathedKatana(cx + 4, p.y + p.h - 7, 0.8);
 }

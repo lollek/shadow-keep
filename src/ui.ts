@@ -57,6 +57,21 @@ export function updateHUD(): void {
 
 const ALL_PANELS = ['titlePanel', 'deathPanel', 'cpPanel', 'shopPanel'];
 
+export function openHelp(): void {
+  store.helpOpen = true;
+  document.getElementById('helpPanel')!.style.display = 'flex';
+}
+
+export function closeHelp(): void {
+  store.helpOpen = false;
+  document.getElementById('helpPanel')!.style.display = 'none';
+}
+
+export function toggleHelp(): void {
+  if (store.helpOpen) closeHelp();
+  else openHelp();
+}
+
 export function showPanel(id: string): void {
   ALL_PANELS.forEach(p => document.getElementById(p)!.style.display = 'none');
   document.getElementById(id)!.style.display = 'flex';

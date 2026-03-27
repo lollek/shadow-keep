@@ -71,7 +71,7 @@ export const ACTIVE_ITEMS: Record<ActiveItemId, { name: string; icon: string; cd
 export const BLDGS: Building[] = [
   { id: 'weapon', label: 'Swordsmith', color: '#2a1008', roof: '#6a2a10', icon: '⚔', x: 0.12, desc: 'Blades & speed' },
   { id: 'apoth', label: 'Herbalist', color: '#0a1a0a', roof: '#1a5a1a', icon: '🌿', x: 0.32, desc: 'Healing & HP' },
-  { id: 'fletcher', label: 'Bowyer', color: '#0a1020', roof: '#1a3060', icon: '🏹', x: 0.52, desc: 'Arrows & bows' },
+  { id: 'fletcher', label: 'Toolmaker', color: '#0a1020', roof: '#1a3060', icon: '✦', x: 0.52, desc: 'Shuriken & tricks' },
   { id: 'shrine', label: 'Shrine', color: '#1a0a20', roof: '#4a1a6a', icon: '⛩', x: 0.72, desc: 'Actives & upgrades' },
   { id: 'dungeon', label: 'Castle Gate', color: '#1a0808', roof: '#550000', icon: '⛩', x: 0.5, desc: 'Enter the keep', yMul: 0.78 },
 ];
@@ -95,9 +95,9 @@ export const SA: ShopItem[] = [
 ];
 
 export const SF: ShopItem[] = [
-  { n: 'Arrow Bundle', i: '🏹', d: '+20 arrows', c: 14, r: 'common', a: (p: Player) => { p.arrows += 20; } },
-  { n: 'Full Quiver', i: '✨', d: '+50 arrows', c: 30, r: 'rare', a: (p: Player) => { p.arrows += 50; } },
-  { n: 'Fire Arrows', i: '💥', d: 'Arrows explode', c: 65, r: 'rare', a: (p: Player) => { p.items.push('explosive'); } },
-  { n: 'Yumi Bow', i: '⚡', d: '+20 ATK + fast arr', c: 90, r: 'epic', a: (p: Player) => { p.atk += 20; p.items.push('fastarrows'); } },
-  { n: 'Endless Quiver', i: '🎒', d: '+80 arrows', c: 70, r: 'epic', a: (p: Player) => { p.arrows += 80; } },
+  { n: 'Shuriken Pouch', i: '✦', d: '+20 shuriken', c: 14, r: 'common', a: (p: Player) => { p.arrows += 20; } },
+  { n: 'Bandolier', i: '🧷', d: '+50 shuriken', c: 30, r: 'rare', a: (p: Player) => { p.arrows += 50; } },
+  { n: 'Blast Seals', i: '💥', d: 'Thrown stars explode', c: 65, r: 'rare', a: (p: Player) => { p.items.push('explosive'); } },
+  { n: 'Balanced Stars', i: '⚡', d: '+20 ATK + fast throws', c: 90, r: 'epic', a: (p: Player) => { p.atk += 20; p.items.push('fastarrows'); } },
+  { n: 'Shinobi Satchel', i: '🎒', d: '+80 shuriken', c: 70, r: 'epic', a: (p: Player) => { p.arrows += 80; } },
 ];

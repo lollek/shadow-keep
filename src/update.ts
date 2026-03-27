@@ -72,7 +72,7 @@ export function updateDungeon(): void {
     const currentTile = map[pty][ptx];
     if (currentTile === TILE_EXIT) {
       if (G.mode === 'boss' && !G.bossDefeated) {
-        setMsg('Defeat the boss first!', 900);
+        setMsg('The exit is sealed. Defeat the boss first!', 1200);
       } else {
         onFloorExit();
         return;
@@ -91,7 +91,7 @@ export function updateDungeon(): void {
       } else if (roll < 0.8) {
         const a = 5 + Math.floor(Math.random() * 10);
         p.arrows += a;
-        setMsg('Chest: +' + a + ' arrows!', 1500);
+        setMsg('Chest: +' + a + ' shuriken!', 1500);
       } else {
         const h = 10 + Math.floor(Math.random() * 15);
         p.hp = Math.min(p.hp + h, p.maxHp);

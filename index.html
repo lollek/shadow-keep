@@ -55,20 +55,35 @@ canvas{display:block;}
     <div class="st" id="loc">Town</div>
     <div class="st gld">Gold <b id="gld">0</b></div>
     <div class="st">ATK <b id="atk">—</b></div>
-    <div class="st">Arrows <b id="arr">—</b></div>
+    <div class="st">Shuriken <b id="arr">—</b></div>
     <div class="st" id="activeSlot" style="display:none"><b id="activeIcon"></b> <span id="activeName"></span> <span id="activeCd" style="color:#888"></span></div>
     <div class="st" style="margin-left:auto;color:#444;font-size:10px">Deepest: <b id="deep" style="color:#666">—</b></div>
-    <div class="st" style="color:#333;font-size:10px" id="ctrl">WASD · LClick=Melee · RClick=Block · Space=Dodge · E=Shoot · Shift=Sneak</div>
+    <div class="st" style="color:#333;font-size:10px" id="ctrl">WASD · LClick=Melee · RClick=Guard · Space=Dodge · E=Throw · Shift=Sneak · H/?=Help</div>
   </div>
   <div id="msg" style="top:44px;padding:3px;min-height:18px;"></div>
 
   <div class="panel dark" id="titlePanel" style="display:flex;">
     <h2 style="color:#cc2200;font-size:26px;letter-spacing:2px">影 SHADOW KEEP 影</h2>
     <p>Infiltrate the fortress. Find the escape route.<br>Return to town to spend gold at shops.<br><br>
-      <b style="color:#bbb">WASD</b> Move &nbsp;·&nbsp; <b style="color:#bbb">Shift</b> Sneak &nbsp;·&nbsp; <b style="color:#bbb">LClick</b> Strike &nbsp;·&nbsp; <b style="color:#bbb">RClick</b> Block &nbsp;·&nbsp; <b style="color:#bbb">Space</b> Dodge &nbsp;·&nbsp; <b style="color:#bbb">E</b> Shoot<br>
-      <b style="color:#bbb">M</b> Toggle map<br><br>
+      <b style="color:#bbb">WASD</b> Move &nbsp;·&nbsp; <b style="color:#bbb">Shift</b> Sneak &nbsp;·&nbsp; <b style="color:#bbb">LClick</b> Strike &nbsp;·&nbsp; <b style="color:#bbb">RClick</b> Guard &nbsp;·&nbsp; <b style="color:#bbb">Space</b> Dodge &nbsp;·&nbsp; <b style="color:#bbb">E</b> Throw shuriken<br>
+      <b style="color:#bbb">M</b> Toggle map &nbsp;·&nbsp; <b style="color:#bbb">H</b> or <b style="color:#bbb">?</b> Help<br><br>
       <span style="color:#555">Enemies telegraph attacks with a red flash. Block during windup for a perfect parry. Approach from behind for a backstab.</span></p>
-    <button class="btn gold" id="titleBtn">Enter Town</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn" id="titleHelpBtn">How To Play</button>
+      <button class="btn gold" id="titleBtn">Enter Town</button>
+    </div>
+  </div>
+
+  <div class="panel dark" id="helpPanel">
+    <h2 style="color:#ddd">How To Play</h2>
+    <p><b style="color:#bbb">Move:</b> WASD<br>
+      <b style="color:#bbb">Strike:</b> Left Click &nbsp;·&nbsp; <b style="color:#bbb">Guard/Parry:</b> Right Click &nbsp;·&nbsp; <b style="color:#bbb">Dodge:</b> Space<br>
+      <b style="color:#bbb">Throw shuriken:</b> E &nbsp;·&nbsp; <b style="color:#bbb">Active item:</b> Q &nbsp;·&nbsp; <b style="color:#bbb">Sneak:</b> Shift &nbsp;·&nbsp; <b style="color:#bbb">Map:</b> M<br><br>
+      Visit shops in town between descents. Rare goods unlock at floor 5, epic goods at floor 10.<br>
+      On boss floors, the exit is sealed until the boss dies.<br>
+      Block during red enemy windups to parry, or circle behind enemies for backstabs.<br><br>
+      Press <b style="color:#bbb">H</b>, <b style="color:#bbb">?</b>, or <b style="color:#bbb">Esc</b> to close this panel.</p>
+    <button class="btn gold" id="helpClose">Close Help</button>
   </div>
 
   <div class="panel dark" id="deathPanel">

@@ -1,7 +1,7 @@
 import { S, sv, store } from './state';
 import { canvas, ctx, resize } from './canvas';
 import { loadSv } from './save';
-import { hideAll } from './ui';
+import { closeHelp, hideAll, toggleHelp } from './ui';
 import { makePlayer } from './player';
 import { doMelee, doShoot, doDodge, useActiveItem } from './combat';
 import { startMusic } from './audio';
@@ -21,14 +21,14 @@ function loop(): void {
   const m = S.mode;
   if (m === 'town') { updateTown(); drawTown(); }
   else if (m === 'dungeon') { updateDungeon(); drawDungeon(); }
-  else if (m === 'pause' && store.G) {
+  else if (m === 'pause' && store.G && store.pauseKind === 'focus') {
     drawDungeon();
     const w = canvas.width, h = canvas.height;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, w, h);
     ctx.font = '600 16px monospace'; ctx.fillStyle = '#ddd'; ctx.textAlign = 'center';
     ctx.fillText('PAUSED', w / 2, h / 2);
     ctx.font = '10px monospace'; ctx.fillStyle = '#888';
-    ctx.fillText('Click to resume', w / 2, h / 2 + 20);
+    ctx.fillText('Press any key to resume', w / 2, h / 2 + 20);
   } else {
     if (store.G) drawDungeon();
     else if (store.TW || m === 'shop') drawTown();
@@ -82,7 +82,19 @@ canvas.addEventListener('selectstart', e => e.preventDefault());
 document.addEventListener('keydown', e => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
   if (e.repeat) return;
-  if (S.mode === 'pause' && store.G) { S.mode = 'dungeon'; return; }
+  if (e.code === 'KeyH' || e.code === 'Slash') {
+    toggleHelp();
+    return;
+  }
+  if (store.helpOpen) {
+    if (e.code === 'Escape') closeHelp();
+    return;
+  }
+  if (S.mode === 'pause' && store.G && store.pauseKind === 'focus') {
+    store.pauseKind = null;
+    S.mode = 'dungeon';
+    return;
+  }
   if (S.mode === 'town' && store.TW) store.TW.keys[e.code] = true;
   if (S.mode === 'dungeon' && store.G) {
     store.G.keys[e.code] = true;
@@ -100,10 +112,13 @@ document.addEventListener('keyup', e => {
 window.addEventListener('blur', () => {
   if (store.TW) store.TW.keys = {};
   if (store.G) { store.G.keys = {}; store.G.rmb = false; }
-  if (S.mode === 'dungeon') S.mode = 'pause';
+  if (S.mode === 'dungeon') { S.mode = 'pause'; store.pauseKind = 'focus'; }
 });
 window.addEventListener('focus', () => {
-  if (S.mode === 'pause' && store.G) S.mode = 'dungeon';
+  if (S.mode === 'pause' && store.G && store.pauseKind === 'focus') {
+    store.pauseKind = null;
+    S.mode = 'dungeon';
+  }
 });
 
 // Panel buttons
@@ -112,12 +127,14 @@ document.getElementById('titleBtn')!.onclick = () => {
   startMusic('Town');
   if (!store.running) { store.running = true; loop(); }
 };
+document.getElementById('titleHelpBtn')!.onclick = () => { toggleHelp(); };
+document.getElementById('helpClose')!.onclick = () => { closeHelp(); };
 document.getElementById('deathTownBtn')!.onclick = () => {
   S.player = makePlayer(); returnToTown();
 };
 document.getElementById('cpTownBtn')!.onclick = () => { returnToTown(); };
 document.getElementById('cpDeepBtn')!.onclick = () => {
-  hideAll(); S.mode = 'dungeon'; nextFloor();
+  hideAll(); store.pauseKind = null; S.mode = 'dungeon'; nextFloor();
 };
 document.getElementById('shopClose')!.onclick = () => {
   hideAll(); S.mode = 'town';

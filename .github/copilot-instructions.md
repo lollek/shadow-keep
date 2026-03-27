@@ -6,7 +6,7 @@ Browser-based 2D dungeon crawler in TypeScript + Vite. Single-page canvas game, 
 **Module structure:**
 - `src/types.ts` — All type definitions (single source of truth for interfaces)
 - `src/constants.ts` — Game constants, tile size `T`, `UI_HEIGHT`, shop items, buildings, active items
-- `src/state.ts` — Mutable global state: `S` (GameState), `sv` (SaveData), `store` (DungeonState/TownState + fade transition)
+- `src/state.ts` — Mutable global state: `S` (GameState), `sv` (SaveData), `store` (DungeonState/TownState + fade/help/pause overlay state)
 - `src/main.ts` — Entry point, game loop, event handlers, fade overlay rendering
 - `src/update.ts` — Main dungeon tick (player movement, enemy AI, projectiles, damage, caltrops)
 - `src/combat.ts` — Melee, shooting, dodge, particle bursts, active items (useActiveItem)
@@ -24,10 +24,11 @@ Browser-based 2D dungeon crawler in TypeScript + Vite. Single-page canvas game, 
 - `store.G` holds the active `DungeonState` (nullable — only set during dungeon)
 - `store.TW` holds the active `TownState` (nullable — only set during town)
 - `store.fade/fadeDir/fadeText/fadeCb` — fade-to-black transition system
+- `store.pauseKind` distinguishes blur-pause from checkpoint flow; `store.helpOpen` tracks the reusable help overlay
 - Tile values: 0=wall, 1=floor, 2=exit, 3=chest, 4=water, 5=spikes, 6=breakable (see `TileValue` in types.ts)
 - Floor themes: 4 bands (Dungeon 1-4, Caverns 5-9, Shrine 10-14, Shadow Keep 15+) via `getTheme()` in constants.ts
 - Shop tier gating: rare items require floor 5, epic items require floor 10 (checked in openShop)
-- 4 shops: SW (Swordsmith), SA (Herbalist), SF (Bowyer), SS (Shrine — unlocked at floor 10)
+- 4 shops: SW (Swordsmith), SA (Herbalist), SF (Toolmaker), SS (Shrine — unlocked at floor 10)
 - Active items: `ActiveItemId` union, Q key, one at a time, cooldown-based
 - Stackable passives: `itemCount()`, `toughMul()`, `vampireHeal()` in player.ts
 - Run stats: `S.run` tracks kills, goldEarned, startTime per descent

@@ -141,7 +141,7 @@ export function doShoot(): void {
   const G = store.G!;
   const p = G.player;
   if (p.arrowCd > 0 || p.dodgeT > 0) return;
-  if (p.arrows <= 0) { setMsg('No arrows!', 900); return; }
+  if (p.arrows <= 0) { setMsg('No shuriken!', 900); return; }
   p.arrows--; p.arrowCd = 16; snd('shoot');
   const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - UI_HEIGHT;
   const ang = Math.atan2(wy - (p.y + p.h / 2), wx - (p.x + p.w / 2));

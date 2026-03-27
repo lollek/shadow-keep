@@ -63,15 +63,26 @@ export function drawDungeon(): void {
         ctx.fillRect(px, py, T, 1); ctx.fillRect(px, py, 1, T);
         if (tile === 2) {
           ctx.globalAlpha = dim;
-          ctx.fillStyle = '#1a3a20'; ctx.fillRect(px + 1, py + 1, T - 2, T - 2);
+          const sealed = G.mode === 'boss' && !G.bossDefeated;
+          ctx.fillStyle = sealed ? '#3a1616' : '#1a3a20';
+          ctx.fillRect(px + 1, py + 1, T - 2, T - 2);
           const pulse = 0.7 + Math.sin(Date.now() * 0.004) * 0.3;
           ctx.globalAlpha = dim * pulse;
-          ctx.fillStyle = '#33ff88';
+          ctx.fillStyle = sealed ? '#ff6655' : '#33ff88';
           ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
-          ctx.fillText('▼', px + T / 2, py + T / 2 + 4);
+          ctx.fillText(sealed ? '✕' : '▼', px + T / 2, py + T / 2 + 4);
           ctx.globalAlpha = dim * 0.5;
-          ctx.strokeStyle = '#44ffaa'; ctx.lineWidth = 1.5;
+          ctx.strokeStyle = sealed ? '#ff7766' : '#44ffaa'; ctx.lineWidth = 1.5;
           ctx.strokeRect(px + 2, py + 2, T - 4, T - 4);
+          if (sealed) {
+            ctx.globalAlpha = dim * 0.75;
+            ctx.strokeStyle = '#ff5544'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(px + 5, py + 4); ctx.lineTo(px + 5, py + T - 4);
+            ctx.moveTo(px + T - 5, py + 4); ctx.lineTo(px + T - 5, py + T - 4);
+            ctx.moveTo(px + T / 2, py + 4); ctx.lineTo(px + T / 2, py + T - 4);
+            ctx.stroke();
+          }
         } else if (tile === TILE_WATER) {
           ctx.globalAlpha = dim * 0.45;
           ctx.fillStyle = theme.waterCol;
@@ -162,9 +173,10 @@ export function drawDungeon(): void {
   const wx = G.mouse.x + G.cam.x, wy = G.mouse.y + G.cam.y - UI_HEIGHT;
   const wAng = Math.atan2(wy - (p.y + p.h / 2), wx - (p.x + p.w / 2));
   const flash = p.invincible > 0 && Math.floor(p.invincible / 3) % 2 === 0;
+  const drawn = p.blocking || Boolean(G.meleeFlash && G.meleeFlash.timer > 0);
   if (G.isSneaking) ctx.globalAlpha = 0.65;
   if (p.dodgeT > 0) ctx.globalAlpha = 0.5 + p.dodgeT / 14 * 0.5;
-  drawPlayer(p, wAng, flash);
+  drawPlayer(p, wAng, flash, drawn);
   ctx.globalAlpha = 1;
   if (G.isSneaking) {
     ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(150,220,255,0.7)';
@@ -204,7 +216,8 @@ function drawMinimap(): void {
       const tile = map[ty][tx];
       const dim = f === 1 ? 0.3 : 1;
       ctx.globalAlpha = dim;
-      ctx.fillStyle = tile === 0 ? '#33335a' : tile === 2 ? '#44ff88' : tile === TILE_WATER ? '#2266aa' : tile === TILE_CHEST ? '#ffcc00' : tile === TILE_SPIKES ? '#aa3333' : tile === TILE_BREAKABLE ? '#55446a' : '#888899';
+      const sealedExit = tile === 2 && G.mode === 'boss' && !G.bossDefeated;
+      ctx.fillStyle = tile === 0 ? '#33335a' : sealedExit ? '#ff6655' : tile === 2 ? '#44ff88' : tile === TILE_WATER ? '#2266aa' : tile === TILE_CHEST ? '#ffcc00' : tile === TILE_SPIKES ? '#aa3333' : tile === TILE_BREAKABLE ? '#55446a' : '#888899';
       ctx.fillRect(mx + tx * scale, my + ty * scale, scale, scale);
     }
   }

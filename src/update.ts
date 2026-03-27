@@ -3,7 +3,7 @@ import { T, TILE_EXIT, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_FLOOR, TILE_BRE
 import { moveEntity, tileCollide, ov, separateEntities } from './collision';
 import { updateFog, hasLOS } from './fog';
 import { updateCamera } from './camera';
-import { snd } from './audio';
+import { snd, stopMusic } from './audio';
 import { tickMsg, updateHUD, setMsg, showPanel } from './ui';
 import { writeSv } from './save';
 import { mkEnemy } from './enemies';
@@ -469,7 +469,7 @@ export function updateDungeon(): void {
   });
 
   if (p.hp <= 0) {
-    p.hp = 0; S.mode = 'dead'; sv.gold = S.gold; writeSv();
+    p.hp = 0; S.mode = 'dead'; sv.gold = S.gold; writeSv(); stopMusic();
     const elapsed = Date.now() - S.run.startTime;
     const mins = Math.floor(elapsed / 60000);
     const secs = Math.floor((elapsed % 60000) / 1000);

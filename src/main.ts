@@ -4,6 +4,7 @@ import { loadSv } from './save';
 import { hideAll } from './ui';
 import { makePlayer } from './player';
 import { doMelee, doShoot, doDodge, useActiveItem } from './combat';
+import { startMusic } from './audio';
 import { updateDungeon } from './update';
 import { returnToTown, nextFloor } from './game-flow';
 import { initTown, updateTown } from './town';
@@ -108,6 +109,7 @@ window.addEventListener('focus', () => {
 // Panel buttons
 document.getElementById('titleBtn')!.onclick = () => {
   S.gold = sv.gold; S.player = makePlayer(); hideAll(); S.mode = 'town'; initTown();
+  startMusic('Town');
   if (!store.running) { store.running = true; loop(); }
 };
 document.getElementById('deathTownBtn')!.onclick = () => {

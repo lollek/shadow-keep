@@ -1,6 +1,6 @@
 import { S, sv, store } from './state';
 import { T, getTheme } from './constants';
-import { snd } from './audio';
+import { snd, startMusic } from './audio';
 import { setMsg, updateHUD, hideAll, showPanel } from './ui';
 import { writeSv } from './save';
 import { generateMap } from './map-gen';
@@ -21,6 +21,7 @@ export function returnToTown(): void {
   sv.gold = S.gold; writeSv();
   S.mode = 'town';
   hideAll(); initTown();
+  startMusic('Town');
 }
 
 export function nextFloor(): void {
@@ -82,6 +83,7 @@ function initDungeonFloor(floor: number): void {
     theme,
   };
   updateCamera(); updateFog();
+  startMusic(theme.name);
   setMsg('Floor ' + floor + ' — ' + theme.name, 2500);
   document.getElementById('ctrl')!.textContent = 'WASD · Click=Melee · E=Shoot · M=Map';
   updateHUD();
@@ -134,6 +136,7 @@ function initBossFloor(floor: number): void {
     theme: getTheme(floor),
   };
   updateCamera();
+  startMusic(getTheme(floor).name);
   snd('boss'); setMsg('★ BOSS FLOOR ' + floor + ' ★', 3000);
   document.getElementById('ctrl')!.textContent = 'WASD · Click=Melee · E=Shoot';
   updateHUD();

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dungeon Crawler</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a14;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:monospace;user-select:none;-webkit-user-select:none;}
+#wrap{position:relative;user-select:none;}
+canvas{display:block;}
+#hud{position:absolute;top:0;left:0;width:100%;display:flex;align-items:center;gap:10px;padding:7px 12px;background:rgba(0,0,0,0.82);pointer-events:none;flex-wrap:wrap;}
+.hpbg{width:90px;height:8px;background:#222;border-radius:4px;overflow:hidden;}
+.hpfill{height:100%;background:#dd0044;border-radius:4px;transition:width .08s;}
+.st{font:500 11px monospace;color:#aaa;white-space:nowrap;}
+.st b{color:#fff;font-weight:500;}
+.st.gld b{color:#ffd700;}
+#msg{position:absolute;left:0;right:0;text-align:center;font:500 13px monospace;color:#ffd700;pointer-events:none;text-shadow:0 0 8px #ffd70044;}
+.panel{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:all;}
+.panel.dark{background:rgba(0,0,0,0.93);}
+.panel h2{font:500 22px monospace;color:#fff;}
+.panel p{font:400 12px monospace;color:#666;text-align:center;max-width:400px;line-height:1.8;}
+.btn{font:500 12px monospace;padding:8px 22px;background:transparent;border:1px solid #444;color:#fff;border-radius:5px;cursor:pointer;margin:2px;}
+.btn:hover{background:rgba(255,255,255,0.07);border-color:#888;}
+.btn.gold{border-color:#ffd700;color:#ffd700;}
+.btn.gold:hover{background:rgba(255,215,0,0.08);}
+.btn.red{border-color:#cc3333;color:#ff6666;}
+.btn.red:hover{background:rgba(200,50,50,0.1);}
+.shop-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:600px;}
+.sc{width:148px;background:#111120;border:1px solid #2a2a3a;border-radius:8px;padding:12px 8px;cursor:pointer;text-align:center;font-family:monospace;transition:border-color .1s,background .1s;}
+.sc:hover:not(.cant){border-color:#ffd700;background:#1a1a28;}
+.sc.cant{opacity:.4;cursor:default;}
+.sc-icon{font-size:22px;margin-bottom:4px;}
+.sc-name{font-size:12px;color:#ddd;font-weight:500;margin-bottom:2px;}
+.sc-desc{font-size:10px;color:#555;line-height:1.4;margin-bottom:5px;}
+.sc-cost{font-size:11px;color:#ffd700;}
+.r-common{border-top:2px solid #777;}
+.r-rare{border-top:2px solid #4af;}
+.r-epic{border-top:2px solid #a4f;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <div style="display:flex;align-items:center;gap:5px;">
+      <span class="st" style="color:#dd0044">HP</span>
+      <div class="hpbg"><div class="hpfill" id="hpf"></div></div>
+      <span class="st" id="hpt">—</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;">
+      <span class="st" style="color:#4488ff">ST</span>
+      <div class="hpbg" style="width:60px;background:#1a1a2a"><div class="hpfill" id="stf" style="background:#4488ff"></div></div>
+    </div>
+    <div class="st" id="loc">Town</div>
+    <div class="st gld">Gold <b id="gld">0</b></div>
+    <div class="st">ATK <b id="atk">—</b></div>
+    <div class="st">Arrows <b id="arr">—</b></div>
+    <div class="st" style="margin-left:auto;color:#444;font-size:10px">Deepest: <b id="deep" style="color:#666">—</b></div>
+    <div class="st" style="color:#333;font-size:10px" id="ctrl">WASD · LClick=Melee · RClick=Block · Space=Dodge · E=Shoot · Shift=Sneak</div>
+  </div>
+  <div id="msg" style="top:44px;padding:3px;min-height:18px;"></div>
+
+  <div class="panel dark" id="titlePanel" style="display:flex;">
+    <h2 style="color:#cc2200;font-size:26px;letter-spacing:2px">影 SHADOW KEEP 影</h2>
+    <p>Infiltrate the fortress. Find the escape route.<br>Return to town to spend gold at shops.<br><br>
+      <b style="color:#bbb">WASD</b> Move &nbsp;·&nbsp; <b style="color:#bbb">Shift</b> Sneak &nbsp;·&nbsp; <b style="color:#bbb">LClick</b> Strike &nbsp;·&nbsp; <b style="color:#bbb">RClick</b> Block &nbsp;·&nbsp; <b style="color:#bbb">Space</b> Dodge &nbsp;·&nbsp; <b style="color:#bbb">E</b> Shoot<br>
+      <b style="color:#bbb">M</b> Toggle map<br><br>
+      <span style="color:#555">Enemies telegraph attacks with a red flash. Block during windup for a perfect parry. Approach from behind for a backstab.</span></p>
+    <button class="btn gold" id="titleBtn">Enter Town</button>
+  </div>
+
+  <div class="panel dark" id="deathPanel">
+    <h2 style="color:#cc2222">You Died</h2>
+    <p id="deathMsg"></p>
+    <button class="btn gold" id="deathTownBtn">Return to Town</button>
+  </div>
+
+  <div class="panel dark" id="cpPanel">
+    <h2 style="color:#ffd700" id="cpTitle">Checkpoint</h2>
+    <p id="cpMsg"></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn gold" id="cpTownBtn">↑ Return to Town</button>
+      <button class="btn red" id="cpDeepBtn">↓ Descend Further</button>
+    </div>
+  </div>
+
+  <div class="panel dark" id="shopPanel">
+    <h2 id="shopTitle">Shop</h2>
+    <p id="shopSub" style="color:#ffd700;font-size:12px;margin-top:-6px;"></p>
+    <div class="shop-grid" id="shopGrid"></div>
+    <button class="btn" id="shopClose" style="margin-top:4px;">Leave Shop</button>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

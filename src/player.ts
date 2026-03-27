@@ -7,6 +7,7 @@ export function makePlayer(): Player {
     weapon: 'katana',
     arrows: 10, items: [],
     invincible: 0, meleeCd: 0, arrowCd: 0,
+    meleeWindup: 0, meleeWindupMax: 0, meleeAim: 0,
     stamina: 100, maxStamina: 100,
     blocking: false, parryWindow: 0,
     dodgeT: 0, dodgeDx: 0, dodgeDy: 0,

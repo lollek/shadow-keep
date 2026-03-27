@@ -182,6 +182,14 @@ function drawSwingWeapon(p: Player): void {
   }
 }
 
+function drawWindupWeapon(p: Player): void {
+  switch (p.weapon) {
+    case 'naginata': drawDrawnNaginata(false); return;
+    case 'nodachi': drawDrawnNodachi(0, false); return;
+    default: drawSwingWeapon(p);
+  }
+}
+
 function drawSheathedWeapon(p: Player, x: number, y: number, faceRight: boolean): void {
   switch (p.weapon) {
     case 'dual_tanto':
@@ -253,7 +261,7 @@ export function drawPlayer(p: Player, wAng: number, flash: boolean, swingT: numb
     drawGuardWeapon(p);
     ctx.restore();
   } else if (swingT > 0) {
-    const swing = 1 - swingT / 10;
+    const swing = 1 - swingT;
     const sweepSide = faceRight ? -1 : 1;
     const sweepMul = p.weapon === 'nodachi' ? 1.45 : p.weapon === 'dual_tanto' ? 0.75 : p.weapon === 'naginata' ? 0.42 : 1;
     const startAng = wAng + sweepSide * weapon.meleeArc * sweepMul;
@@ -266,6 +274,17 @@ export function drawPlayer(p: Player, wAng: number, flash: boolean, swingT: numb
     ctx.translate(cx + vx, cy + vy);
     ctx.rotate(ang);
     drawSwingWeapon(p);
+    ctx.restore();
+  } else if (p.meleeWindup > 0 && p.meleeWindupMax > 0) {
+    const windup = 1 - p.meleeWindup / p.meleeWindupMax;
+    const aim = p.meleeAim;
+    const backPull = p.weapon === 'nodachi' ? 1.15 - windup * 0.55 : 0.42 - windup * 0.18;
+    const ang = aim - faceDir * backPull;
+    const reach = p.weapon === 'nodachi' ? 1.8 + windup * 1.4 : 4.8 + windup * 1.2;
+    ctx.save();
+    ctx.translate(cx + Math.cos(aim) * reach, cy + Math.sin(aim) * reach - (p.weapon === 'nodachi' ? 1.5 : 0));
+    ctx.rotate(ang);
+    drawWindupWeapon(p);
     ctx.restore();
   } else {
     if (p.weapon === 'naginata') {

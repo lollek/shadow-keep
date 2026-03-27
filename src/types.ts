@@ -1,5 +1,5 @@
 export type GameMode = 'title' | 'town' | 'dungeon' | 'dead' | 'pause' | 'shop' | 'weapon-select';
-export type EnemyTier = 'basic' | 'charger' | 'sniper' | 'splitter' | 'elite' | 'minion' | 'boss';
+export type EnemyTier = 'basic' | 'charger' | 'sniper' | 'elite' | 'minion' | 'boss';
 export type AIState = 'patrol' | 'suspect' | 'chase' | 'search';
 export type AttackState = 'idle' | 'windup' | 'strike' | 'recovery';
 export type DungeonMode = 'explore' | 'boss';
@@ -31,6 +31,7 @@ export interface Player extends Rect {
   weapon: WeaponId;
   arrows: number; items: ItemId[];
   invincible: number; meleeCd: number; arrowCd: number;
+  meleeWindup: number; meleeWindupMax: number; meleeAim: number;
   stamina: number; maxStamina: number;
   blocking: boolean; parryWindow: number;
   dodgeT: number; dodgeDx: number; dodgeDy: number;
@@ -43,6 +44,7 @@ export interface Enemy extends Rect {
   vx: number; vy: number;
   hp: number; maxHp: number; spd: number; atk: number;
   tier: EnemyTier; color: string;
+  meleeArc: number;
   canShoot: boolean; shootT: number; shootInt: number;
   stateT: number;
   patrolDx: number; patrolDy: number; patrolT: number;
@@ -55,7 +57,7 @@ export interface Enemy extends Rect {
   canBlock: boolean; guardHP: number; blocking: boolean;
   chargeVx: number; chargeVy: number; chargeT: number;
   phase2: boolean; minionT: number;
-  _split: boolean;
+  packId: number;
   _noiseCue: boolean;
 }
 
@@ -76,19 +78,13 @@ export interface NormalParticle {
   life: number; color: string;
 }
 
-export interface RippleParticle {
-  type: 'ripple';
-  x: number; y: number; r: number; maxR: number;
-  life: number;
-}
-
 export interface DmgParticle {
   type: 'dmg';
   x: number; y: number; vy: number;
   life: number; text: string; color: string;
 }
 
-export type Particle = NormalParticle | RippleParticle | DmgParticle;
+export type Particle = NormalParticle | DmgParticle;
 
 export interface Room {
   x: number; y: number; w: number; h: number;
@@ -98,7 +94,7 @@ export interface Room {
 export type TileMap = Uint8Array[];
 
 export interface MeleeFlash {
-  angle: number; timer: number;
+  angle: number; timer: number; maxTimer: number;
 }
 
 export interface Caltrop extends Rect {
@@ -169,6 +165,8 @@ export interface WeaponDef {
   icon: string;
   desc: string;
   canBlock: boolean;
+  windupFrames: number;
+  swingFrames: number;
   meleeCd: number;
   meleeRange: number;
   meleeArc: number;

@@ -1,6 +1,39 @@
 import { ctx } from '../canvas';
+import { T } from '../constants';
 import type { Enemy } from '../types';
 import { roundRect } from './helpers';
+
+function drawAttackArc(cx: number, cy: number, e: Enemy): void {
+  if (e.atkState !== 'windup' && e.atkState !== 'strike') return;
+
+  const reach = e.tier === 'boss' ? T * 2.2 : T * 1.8;
+  const innerReach = Math.max(T * 0.55, reach * 0.45);
+  const ang = Math.atan2(e.strikeY - cy, e.strikeX - cx);
+  const arc = e.meleeArc;
+  const alpha = e.atkState === 'windup'
+    ? 0.12 + 0.18 * (1 - e.atkT / (e.windup || 20))
+    : 0.28;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = e.atkState === 'strike' ? '#c94f1d' : '#b87a2a';
+  ctx.beginPath();
+  ctx.moveTo(Math.cos(ang - arc) * innerReach, Math.sin(ang - arc) * innerReach);
+  ctx.arc(0, 0, reach, ang - arc, ang + arc);
+  ctx.lineTo(Math.cos(ang + arc) * innerReach, Math.sin(ang + arc) * innerReach);
+  ctx.arc(0, 0, innerReach, ang + arc, ang - arc, true);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.globalAlpha = alpha + 0.12;
+  ctx.strokeStyle = e.atkState === 'strike' ? '#ff7a33' : '#d9a14a';
+  ctx.lineWidth = e.tier === 'boss' ? 2.4 : 1.8;
+  ctx.beginPath();
+  ctx.arc(0, 0, reach, ang - arc, ang + arc);
+  ctx.stroke();
+  ctx.restore();
+}
 
 function drawAttackGlow(cx: number, cy: number, r: number, e: Enemy): void {
   if (e.atkState === 'windup') {
@@ -202,7 +235,7 @@ function drawBossArmor(scale: number): void {
 }
 
 function drawTierSprite(e: Enemy): void {
-  const baseScale = e.tier === 'boss' ? 1.35 : e.tier === 'splitter' ? 1.15 : e.tier === 'charger' ? 1.05 : e.tier === 'minion' ? 0.82 : 0.95;
+  const baseScale = e.tier === 'boss' ? 1.35 : e.tier === 'charger' ? 1.05 : e.tier === 'minion' ? 0.82 : 0.95;
 
   if (e.tier === 'boss') {
     drawFeet(baseScale, '#2a0b0b');
@@ -252,21 +285,6 @@ function drawTierSprite(e: Enemy): void {
     ctx.closePath();
     ctx.fill();
     drawBow(baseScale, '#6e4d1c', '#cfc79f');
-    return;
-  }
-
-  if (e.tier === 'splitter') {
-    drawHumanBase(baseScale, '#2e1805', '#8f4f14', '#16100a', '#ffd96a');
-    drawShoulderPads(baseScale, '#5b2a08');
-    ctx.fillStyle = '#d8c8b0';
-    roundRect(-4.8 * baseScale, -8.8 * baseScale, 9.6 * baseScale, 5.5 * baseScale, 2 * baseScale); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,.55)';
-    ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.moveTo(0, -8.6 * baseScale); ctx.lineTo(0, -3.2 * baseScale); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-3 * baseScale, -6 * baseScale); ctx.lineTo(3 * baseScale, -6 * baseScale); ctx.stroke();
-    ctx.fillStyle = '#3b1b06';
-    ctx.beginPath(); ctx.moveTo(-6 * baseScale, -10 * baseScale); ctx.lineTo(-2 * baseScale, -7 * baseScale); ctx.lineTo(-5 * baseScale, -4 * baseScale); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(6 * baseScale, -10 * baseScale); ctx.lineTo(2 * baseScale, -7 * baseScale); ctx.lineTo(5 * baseScale, -4 * baseScale); ctx.closePath(); ctx.fill();
     return;
   }
 
@@ -322,6 +340,7 @@ export function drawEnemy(e: Enemy): void {
   const pct = Math.max(0, e.hp / e.maxHp);
   const faceRight = Math.cos(e.facing) >= 0;
 
+  drawAttackArc(cx, cy, e);
   drawAttackGlow(cx, cy, r, e);
   drawBlockGlow(cx, cy, r, e);
 

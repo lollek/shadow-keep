@@ -38,6 +38,8 @@ describe('weapon definitions', () => {
     expect(WEAPONS.naginata.icon).toBe('🔱');
     expect(WEAPONS.nodachi.meleeArc).toBeGreaterThan(Math.PI / 2);
     expect(WEAPONS.naginata.meleeArc).toBeLessThan(WEAPONS.katana.meleeArc);
+    expect(WEAPONS.nodachi.windupFrames).toBeGreaterThan(0);
+    expect(WEAPONS.nodachi.swingFrames).toBeGreaterThan(WEAPONS.katana.swingFrames);
   });
 });
 

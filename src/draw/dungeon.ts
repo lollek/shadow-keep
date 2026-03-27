@@ -17,8 +17,8 @@ function drawWeaponTelegraph(wAng: number, alpha: number): void {
   ctx.save();
   ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
 
-  ctx.globalAlpha = 0.08 * alpha;
-  ctx.fillStyle = '#ffd700';
+  ctx.globalAlpha = 0.04 * alpha;
+  ctx.fillStyle = '#c9a446';
   ctx.beginPath();
   ctx.moveTo(Math.cos(wAng - arc) * innerReach, Math.sin(wAng - arc) * innerReach);
   ctx.arc(0, 0, reach, wAng - arc, wAng + arc);
@@ -27,14 +27,14 @@ function drawWeaponTelegraph(wAng: number, alpha: number): void {
   ctx.closePath();
   ctx.fill();
 
-  ctx.globalAlpha = 0.55 * alpha;
-  ctx.strokeStyle = '#ffd700';
-  ctx.lineWidth = weapon.meleeArc < 0.7 ? 2.5 : 3;
+  ctx.globalAlpha = 0.25 * alpha;
+  ctx.strokeStyle = '#c9a446';
+  ctx.lineWidth = weapon.meleeArc < 0.7 ? 2 : 2.4;
   ctx.beginPath();
   ctx.arc(0, 0, reach, wAng - arc, wAng + arc);
   ctx.stroke();
 
-  ctx.globalAlpha = 0.3 * alpha;
+  ctx.globalAlpha = 0.16 * alpha;
   ctx.setLineDash([5, 4]);
   ctx.beginPath();
   ctx.arc(0, 0, innerReach, wAng - arc, wAng + arc);
@@ -49,8 +49,8 @@ function drawWeaponTelegraph(wAng: number, alpha: number): void {
   ctx.lineTo(Math.cos(wAng + arc) * reach, Math.sin(wAng + arc) * reach);
   ctx.stroke();
 
-  ctx.globalAlpha = 0.8 * alpha;
-  ctx.fillStyle = '#fff1a8';
+  ctx.globalAlpha = 0.28 * alpha;
+  ctx.fillStyle = '#e6cf8a';
   ctx.beginPath();
   ctx.arc(Math.cos(wAng) * reach, Math.sin(wAng) * reach, weapon.meleeArc < 0.7 ? 3.2 : 4.2, 0, Math.PI * 2);
   ctx.fill();
@@ -173,13 +173,6 @@ export function drawDungeon(): void {
 
   // Particles
   G.particles.forEach((pt: Particle) => {
-    if (pt.type === 'ripple') {
-      ctx.globalAlpha = Math.max(0, pt.life) * 0.5;
-      ctx.strokeStyle = '#ffee88'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 1;
-      return;
-    }
     if (pt.type === 'dmg') {
       ctx.globalAlpha = Math.max(0, pt.life);
       ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
@@ -225,11 +218,16 @@ export function drawDungeon(): void {
   const p = G.player;
   const wx = G.mouse.x / RENDER_SCALE + G.cam.x, wy = (G.mouse.y - UI_HEIGHT) / RENDER_SCALE + G.cam.y;
   const wAng = Math.atan2(wy - (p.y + p.h / 2), wx - (p.x + p.w / 2));
+  const weaponAng = p.meleeWindup > 0
+    ? p.meleeAim
+    : G.meleeFlash && G.meleeFlash.timer > 0
+      ? G.meleeFlash.angle
+      : wAng;
   const flash = p.invincible > 0 && Math.floor(p.invincible / 3) % 2 === 0;
-  const swingT = G.meleeFlash && G.meleeFlash.timer > 0 ? G.meleeFlash.timer : 0;
+  const swingT = G.meleeFlash && G.meleeFlash.timer > 0 ? G.meleeFlash.timer / G.meleeFlash.maxTimer : 0;
   if (G.isSneaking) ctx.globalAlpha = 0.65;
   if (p.dodgeT > 0) ctx.globalAlpha = 0.5 + p.dodgeT / 14 * 0.5;
-  drawPlayer(p, wAng, flash, swingT, Math.cos(wAng) >= 0);
+  drawPlayer(p, weaponAng, flash, swingT, Math.cos(wAng) >= 0);
   ctx.globalAlpha = 1;
   if (G.isSneaking) {
     ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(150,220,255,0.7)';
@@ -240,17 +238,20 @@ export function drawDungeon(): void {
     ctx.fillText('GUARD BROKEN', p.x + p.w / 2, p.y - 10);
   }
 
+  if (p.meleeWindup > 0 && p.meleeWindupMax > 0) {
+    const windupAlpha = 1 - p.meleeWindup / p.meleeWindupMax;
+    drawWeaponTelegraph(p.meleeAim, windupAlpha * 0.4);
+  }
+
   if (G.meleeFlash && G.meleeFlash.timer > 0) {
     const weapon = WEAPONS[p.weapon];
     const reach = T * weapon.meleeRange;
     const arc = weapon.meleeArc;
-    const mt = G.meleeFlash.timer / 10;
+    const mt = G.meleeFlash.timer / G.meleeFlash.maxTimer;
     drawWeaponTelegraph(G.meleeFlash.angle, mt);
     ctx.save(); ctx.translate(p.x + p.w / 2, p.y + p.h / 2); ctx.rotate(G.meleeFlash.angle);
-    ctx.globalAlpha = mt * 0.7; ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
+    ctx.globalAlpha = mt * 0.22; ctx.strokeStyle = '#c9a446'; ctx.lineWidth = 2.2;
     ctx.beginPath(); ctx.arc(0, 0, reach, -arc, arc); ctx.stroke();
-    ctx.globalAlpha = mt * 0.25; ctx.fillStyle = '#ffd700';
-    ctx.beginPath(); ctx.arc(reach, 0, weapon.meleeArc < 0.7 ? T * 0.45 : T * 0.8, -Math.min(arc, 1), Math.min(arc, 1)); ctx.fill();
     ctx.restore(); ctx.globalAlpha = 1;
   }
 

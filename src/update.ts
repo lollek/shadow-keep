@@ -7,7 +7,7 @@ import { snd, stopMusic } from './audio';
 import { tickMsg, updateHUD, setMsg, showPanel } from './ui';
 import { writeSv } from './save';
 import { mkEnemy } from './enemies';
-import { burst, emitNoise, spawnDmg } from './combat';
+import { burst, emitNoise, spawnDmg, tickPlayerMeleeWindup } from './combat';
 import { onFloorExit } from './game-flow';
 import { vampireHeal, toughMul } from './player';
 import type { Particle, TileMap } from './types';
@@ -30,13 +30,14 @@ export function updateDungeon(): void {
   if (!G || S.mode !== 'dungeon') return;
   const p = G.player, map = G.map;
   const weapon = WEAPONS[p.weapon];
+  const inMeleeWindup = p.meleeWindup > 0;
 
   store.isSneaking = !!G.sneaking;
   const isSneaking = store.isSneaking;
   const dx = ((G.keys['KeyD'] || G.keys['ArrowRight']) ? 1 : 0) - ((G.keys['KeyA'] || G.keys['ArrowLeft']) ? 1 : 0);
   const dy = ((G.keys['KeyS'] || G.keys['ArrowDown']) ? 1 : 0) - ((G.keys['KeyW'] || G.keys['ArrowUp']) ? 1 : 0);
 
-  p.blocking = weapon.canBlock && !!G.rmb && p.stamina > 0 && p.dodgeT <= 0;
+  p.blocking = weapon.canBlock && !!G.rmb && p.stamina > 0 && p.dodgeT <= 0 && !inMeleeWindup;
   if (p.blocking) {
     p.stamina = Math.max(0, p.stamina - 0.6);
     const enemyAttacking = G.enemies.some(e => e.atkState === 'windup');
@@ -53,17 +54,19 @@ export function updateDungeon(): void {
     // Water tile slows movement to 50%
     const onWater = map[Math.floor((p.y + p.h / 2) / T)]?.[Math.floor((p.x + p.w / 2) / T)] === TILE_WATER;
     const waterMul = onWater ? 0.5 : 1;
-    const moveSpd = (p.blocking ? p.spd * 0.3 : isSneaking ? p.spd * 0.45 : p.spd) * waterMul;
+    const windupMul = inMeleeWindup ? 0.38 : 1;
+    const moveSpd = (p.blocking ? p.spd * 0.3 : isSneaking ? p.spd * 0.45 : p.spd) * waterMul * windupMul;
     if (dx || dy) { const l = Math.hypot(dx, dy); moveEntity(p, dx / l * moveSpd, dy / l * moveSpd, map); }
   }
   if (p.dodgeCd > 0) p.dodgeCd--;
-  G.isSneaking = isSneaking && !p.blocking && p.dodgeT <= 0;
+  G.isSneaking = isSneaking && !p.blocking && p.dodgeT <= 0 && !inMeleeWindup;
 
   if (p.invincible > 0) p.invincible--;
   if (p.meleeCd > 0) p.meleeCd--;
   if (p.arrowCd > 0) p.arrowCd--;
   if (p.activeCd > 0) p.activeCd--;
   if (G.meleeFlash && G.meleeFlash.timer > 0) G.meleeFlash.timer--;
+  tickPlayerMeleeWindup();
 
   updateCamera();
   updateFog();
@@ -117,6 +120,25 @@ export function updateDungeon(): void {
 
   const px = p.x + p.w / 2, py = p.y + p.h / 2;
   const playerDetectRange = isSneaking ? T * 4 : T * 7;
+
+  const alertedPackIds = new Set<number>();
+  G.enemies.forEach(e => {
+    if (e.packId <= 0) return;
+    if (e.aiState === 'chase' || e.atkState === 'windup' || e.atkState === 'strike') {
+      alertedPackIds.add(e.packId);
+    }
+  });
+  if (alertedPackIds.size > 0) {
+    G.enemies.forEach(e => {
+      if (e.packId <= 0 || !alertedPackIds.has(e.packId) || e.aiState === 'chase') return;
+      e.aiState = 'chase';
+      e.suspectT = 0;
+      e.searchT = 0;
+      e._noiseCue = false;
+      e.searchX = px;
+      e.searchY = py;
+    });
+  }
 
   G.enemies.forEach(e => {
     const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
@@ -270,8 +292,13 @@ export function updateDungeon(): void {
       } else if (e.atkState === 'strike') {
         e.atkT--;
         const distPStrike = Math.hypot(px - ecx, py - ecy);
+        const strikeAng = Math.atan2(e.strikeY - ecy, e.strikeX - ecx);
+        const playerAng = Math.atan2(py - ecy, px - ecx);
+        const strikeDiff = Math.abs(((playerAng - strikeAng) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
         if (distPStrike < meleeRange + T) {
-          if (p.dodgeT > 0) {
+          if (strikeDiff > e.meleeArc) {
+            // sidestepped the swing cone
+          } else if (p.dodgeT > 0) {
             // dodge — miss
           } else if (p.parryWindow > 0) {
             e.atkState = 'recovery'; e.atkT = 70;
@@ -429,7 +456,7 @@ export function updateDungeon(): void {
   // Deaths
   G.enemies.filter(e => e.hp <= 0).forEach(e => {
     const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
-    const g = (e.tier === 'boss' ? 40 : e.tier === 'elite' ? 12 : e.tier === 'splitter' ? 7 : 3) + G.goldBonus;
+    const g = (e.tier === 'boss' ? 40 : e.tier === 'elite' ? 12 : e.tier === 'minion' ? 2 : 3) + G.goldBonus;
     S.gold += g; sv.gold = S.gold;
     S.run.kills++; S.run.goldEarned += g;
     const vheal = vampireHeal(p);
@@ -440,11 +467,6 @@ export function updateDungeon(): void {
       G.bossDefeated = true;
       shake(12);
       setMsg('Boss defeated! The exit opens.', 1800);
-    }
-    if (e.tier === 'splitter' && !e._split) {
-      e._split = true;
-      G.enemies.push(mkEnemy('minion', ecx - 10, ecy, G.floor));
-      G.enemies.push(mkEnemy('minion', ecx + 10, ecy, G.floor));
     }
   });
   G.enemies = G.enemies.filter(e => e.hp > 0);
@@ -467,11 +489,6 @@ export function updateDungeon(): void {
   });
 
   G.particles = G.particles.filter((pt: Particle) => {
-    if (pt.type === 'ripple') {
-      pt.r += pt.maxR * 0.06;
-      pt.life -= 0.045;
-      return pt.life > 0;
-    }
     if (pt.type === 'dmg') {
       pt.y += pt.vy; pt.life -= 0.025;
       return pt.life > 0;

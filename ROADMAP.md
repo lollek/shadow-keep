@@ -7,12 +7,12 @@ A browser-based feudal-Japan dungeon crawler with:
 - 4 run-start weapons with distinct combat identity: katana, dual tanto, naginata, nodachi
 - Shrine shop unlocked at floor 10, sells active items + stackable passives
 - Procedural BSP dungeon generation, boss every 5 floors
-- 6 enemy types (basic/charger/sniper/splitter/elite/minion) + bosses
+- 5 enemy types (basic/charger/sniper/elite/minion) + bosses
 - Combat: melee, ranged (shuriken), dodge-roll, guard/parry, backstab, sneak
-- Weapon-specific melee range, arc, cooldown, knockback, and attack telegraph
+- Weapon-specific melee range, arc, cooldown, windup, swing timing, knockback, and attack telegraph
 - Dual Tanto kill-chains on melee kill and cannot block
-- Naginata uses long-reach narrow thrusting attacks; Nodachi uses wide sweeping heavy cuts
-- Enemy AI: patrol → suspect → chase → search with cone-of-vision + noise
+- Naginata uses long-reach narrow thrusting attacks; Nodachi uses wide sweeping heavy cuts with a committed windup
+- Enemy AI: patrol → suspect → chase → search with cone-of-vision + noise, plus pack alerting
 - Fog of war (Bresenham LOS), minimap, particles, screen shake
 - Active items: smoke bomb, dash strike, caltrops (Q key, cooldowns)
 - Stackable passives: vampire fang (+3 heal/kill/stack), iron lamellar (-20%/-35%/-45% dmg)
@@ -33,8 +33,15 @@ A browser-based feudal-Japan dungeon crawler with:
 - Loot chests with random rewards (gold, shuriken, heal)
 - 4 floor themes (Dungeon, Caverns, Shrine, Shadow Keep) with distinct visuals
 - Melee cannot strike through walls or breakable walls
+- Natural enemy pack encounters replace old death-splitting enemies
+- Noise still affects AI, but the old on-screen ripple indicator is removed
 - Environmental tiles: water (slows), spikes (damage), breakable walls (destructible)
 - 7 tile types: wall, floor, exit, chest, water, spikes, breakable
+
+## Next — Combat Feel Follow-Up
+- Continue tuning weapon recovery and timing readability after the first nodachi windup pass
+- Re-check whether the softened melee telegraph is readable enough at high combat density without disappearing into the background
+- Fine-tune naginata and nodachi commitment so they feel distinct without drifting too far apart in effectiveness
 
 ## Later — Boss Rework
 - Current bosses need more readable attack identity and more satisfying combat rhythm
@@ -43,6 +50,11 @@ A browser-based feudal-Japan dungeon crawler with:
 - Add arena pressure/hazards that support the boss pattern rather than random attrition
 - Consider per-theme boss variants with different movesets
 
+## Later — Pack AI Polish
+- Push pack behavior further than shared alerting: leader/follower spacing, flanking, staggered aggression, or coordinated pressure
+- Decide whether packs should have clearer visual identity or composition rules by floor/theme
+- Tune encounter composition so pack rooms feel deliberate instead of just denser versions of solo rooms
+
 ## Later — Additional Ideas
 - Weapon balance pass after more playtesting
 - Settings panel (volume slider, key rebinding)
@@ -50,3 +62,9 @@ A browser-based feudal-Japan dungeon crawler with:
 - New floor themes beyond floor 15
 - Achievements / challenge modes
 - Leaderboard (local)
+
+## Later — Progression Rethink
+- Re-evaluate run persistence: gold currently persists across death/reload, but the rest of progression resets too aggressively
+- Decide what should persist between deaths, what should persist only at checkpoints, and what should stay run-only
+- Reduce frustration of returning to town and restarting from floor 1 every time without flattening the game into permanent power creep
+- Consider a stronger checkpoint/meta-progression structure so town returns feel like forward progress instead of a reset tax

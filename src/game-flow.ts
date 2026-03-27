@@ -4,11 +4,32 @@ import { snd, startMusic } from './audio';
 import { setMsg, updateHUD, hideAll, showPanel } from './ui';
 import { writeSv } from './save';
 import { generateMap } from './map-gen';
-import { spawnEnemy, makeBoss } from './enemies';
+import { spawnEnemy, makeBoss, mkEnemy } from './enemies';
 import { updateCamera } from './camera';
 import { updateFog } from './fog';
 import { initTown } from './town';
 import type { DungeonState, Room } from './types';
+
+function spawnRoomEncounter(room: Room, floor: number, packId: number) {
+  const ex = (room.x + 1 + Math.floor(Math.random() * (room.w - 2))) * T;
+  const ey = (room.y + 1 + Math.floor(Math.random() * (room.h - 2))) * T;
+  const leader = spawnEnemy(ex, ey, floor);
+  leader.packId = packId;
+
+  const encounter = [leader];
+  const canSpawnPack = floor >= 4 && (leader.tier === 'basic' || leader.tier === 'charger');
+  if (!canSpawnPack || Math.random() >= 0.34) return encounter;
+
+  const minionCount = floor >= 8 && Math.random() < 0.45 ? 2 : 1;
+  for (let i = 0; i < minionCount; i++) {
+    const mx = (room.x + 1 + Math.floor(Math.random() * (room.w - 2))) * T;
+    const my = (room.y + 1 + Math.floor(Math.random() * (room.h - 2))) * T;
+    const minion = mkEnemy('minion', mx, my, floor);
+    minion.packId = packId;
+    encounter.push(minion);
+  }
+  return encounter;
+}
 
 export function startDescent(): void {
   if (!S.player) return;
@@ -56,15 +77,12 @@ function initDungeonFloor(floor: number): void {
   p.y = startRoom.cy * T + T / 2 - p.h / 2;
 
   const fog = Array.from({ length: map.length }, () => new Uint8Array(map[0].length));
+  let nextPackId = 1;
   const enemies = rooms.flatMap((r, i) => {
     if (i === 0) return [];
     if (r === exitRoom) return [];
     const count = 1 + Math.floor(Math.random() * Math.max(1, Math.floor(floor / 2)));
-    return Array.from({ length: count }, () => {
-      const ex = (r.x + 1 + Math.floor(Math.random() * (r.w - 2))) * T;
-      const ey = (r.y + 1 + Math.floor(Math.random() * (r.h - 2))) * T;
-      return spawnEnemy(ex, ey, floor);
-    });
+    return Array.from({ length: count }, () => spawnRoomEncounter(r, floor, nextPackId++)).flat();
   });
 
   const theme = getTheme(floor);

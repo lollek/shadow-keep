@@ -27,8 +27,6 @@ export function spawnDmg(x: number, y: number, dmg: number, color = '#fff'): voi
 
 export function emitNoise(nx: number, ny: number, noiseR: number, investigateSource: boolean): void {
   const G = store.G!;
-  G.particles.push({ type: 'ripple', x: nx, y: ny, r: 0, maxR: noiseR * T, life: 1 } as Particle);
-
   G.enemies.forEach(e => {
     if (e.aiState === 'chase') return;
     const dist = Math.hypot((e.x + e.w / 2) - nx, (e.y + e.h / 2) - ny);
@@ -65,15 +63,11 @@ function meleePathBlocked(x0: number, y0: number, x1: number, y1: number): boole
   return false;
 }
 
-export function doMelee(): void {
+function executeMeleeAttack(ang: number): void {
   const G = store.G!;
   const p = G.player;
-  if (p.meleeCd > 0 || p.dodgeT > 0) return;
   const weapon = WEAPONS[p.weapon];
-  p.meleeCd = weapon.meleeCd; snd('melee');
   const px = p.x + p.w / 2, py = p.y + p.h / 2;
-  const wx = G.mouse.x / RENDER_SCALE + G.cam.x, wy = (G.mouse.y - UI_HEIGHT) / RENDER_SCALE + G.cam.y;
-  const ang = Math.atan2(wy - py, wx - px);
   const baseDmg = Math.max(1, Math.round(p.atk * weapon.damageMul));
   let hit = false;
   let resetChain = false;
@@ -128,7 +122,7 @@ export function doMelee(): void {
 
   if (hit) snd('hit');
   if (resetChain) p.meleeCd = 0;
-  G.meleeFlash = { angle: ang, timer: 10 };
+  G.meleeFlash = { angle: ang, timer: weapon.swingFrames, maxTimer: weapon.swingFrames };
   emitNoise(px, py, store.isSneaking ? 3 : 5, false);
 
   let reflected = false;
@@ -162,10 +156,44 @@ export function doMelee(): void {
   }
 }
 
+export function doMelee(): void {
+  const G = store.G!;
+  const p = G.player;
+  if (p.meleeCd > 0 || p.dodgeT > 0 || p.meleeWindup > 0) return;
+  const weapon = WEAPONS[p.weapon];
+  const px = p.x + p.w / 2, py = p.y + p.h / 2;
+  const wx = G.mouse.x / RENDER_SCALE + G.cam.x, wy = (G.mouse.y - UI_HEIGHT) / RENDER_SCALE + G.cam.y;
+  const ang = Math.atan2(wy - py, wx - px);
+
+  p.meleeCd = weapon.meleeCd;
+  p.meleeAim = ang;
+  p.meleeWindup = weapon.windupFrames;
+  p.meleeWindupMax = weapon.windupFrames;
+
+  if (weapon.windupFrames > 0) return;
+
+  snd('melee');
+  executeMeleeAttack(ang);
+}
+
+export function tickPlayerMeleeWindup(): void {
+  const G = store.G;
+  if (!G) return;
+  const p = G.player;
+  if (p.meleeWindup <= 0) return;
+
+  p.meleeWindup--;
+  if (p.meleeWindup > 0) return;
+
+  snd('melee');
+  executeMeleeAttack(p.meleeAim);
+  p.meleeWindupMax = 0;
+}
+
 export function doShoot(): void {
   const G = store.G!;
   const p = G.player;
-  if (p.arrowCd > 0 || p.dodgeT > 0) return;
+  if (p.arrowCd > 0 || p.dodgeT > 0 || p.meleeWindup > 0) return;
   if (p.arrows <= 0) { setMsg('No shuriken!', 900); return; }
   p.arrows--; p.arrowCd = 16; snd('shoot');
   const wx = G.mouse.x / RENDER_SCALE + G.cam.x, wy = (G.mouse.y - UI_HEIGHT) / RENDER_SCALE + G.cam.y;
@@ -184,7 +212,7 @@ export function doShoot(): void {
 export function doDodge(): void {
   const G = store.G!;
   const p = G.player;
-  if (p.dodgeCd > 0 || p.dodgeT > 0 || p.stamina < 20) return;
+  if (p.dodgeCd > 0 || p.dodgeT > 0 || p.stamina < 20 || p.meleeWindup > 0) return;
   const dx = ((G.keys['KeyD'] || G.keys['ArrowRight']) ? 1 : 0) - ((G.keys['KeyA'] || G.keys['ArrowLeft']) ? 1 : 0);
   const dy = ((G.keys['KeyS'] || G.keys['ArrowDown']) ? 1 : 0) - ((G.keys['KeyW'] || G.keys['ArrowUp']) ? 1 : 0);
   const wx = G.mouse.x / RENDER_SCALE + G.cam.x, wy = (G.mouse.y - UI_HEIGHT) / RENDER_SCALE + G.cam.y;
@@ -203,7 +231,7 @@ export function doDodge(): void {
 export function useActiveItem(): void {
   const G = store.G!;
   const p = G.player;
-  if (!p.activeItem || p.activeCd > 0 || p.dodgeT > 0) return;
+  if (!p.activeItem || p.activeCd > 0 || p.dodgeT > 0 || p.meleeWindup > 0) return;
 
   const def = ACTIVE_ITEMS[p.activeItem];
   p.activeCd = def.cd;
@@ -217,7 +245,6 @@ export function useActiveItem(): void {
     const radius = T * 6;
     burst(px, py, '#888888', 20, 5);
     burst(px, py, '#aaaaaa', 15, 4);
-    G.particles.push({ type: 'ripple', x: px, y: py, r: 0, maxR: radius, life: 1 } as Particle);
     G.enemies.forEach(e => {
       const dist = Math.hypot((e.x + e.w / 2) - px, (e.y + e.h / 2) - py);
       if (dist < radius) {

@@ -18,6 +18,7 @@ describe('mkEnemy', () => {
     expect(e.h).toBe(26);
     expect(e.hp).toBe(28 + 3 * 5); // 43
     expect(e.color).toBe('#8B0000');
+    expect(e.meleeArc).toBeLessThan(0.7);
   });
 
   it('creates a sniper that can shoot', () => {
@@ -27,12 +28,9 @@ describe('mkEnemy', () => {
     expect(e.spd).toBe(0.3);
   });
 
-  it('creates a splitter with large size', () => {
-    const e = mkEnemy('splitter', 100, 100, 5);
-    expect(e.tier).toBe('splitter');
-    expect(e.w).toBe(30);
-    expect(e.h).toBe(30);
-    expect(e.hp).toBe(38 + 5 * 6); // 68
+  it('initializes pack ids to zero by default', () => {
+    const e = mkEnemy('basic', 100, 100, 5);
+    expect(e.packId).toBe(0);
   });
 
   it('creates an elite that can block and shoot', () => {
@@ -41,6 +39,7 @@ describe('mkEnemy', () => {
     expect(e.canBlock).toBe(true);
     expect(e.canShoot).toBe(true);
     expect(e.guardHP).toBe(3);
+    expect(e.meleeArc).toBeGreaterThan(0.8);
   });
 
   it('creates a minion with fixed stats', () => {
@@ -85,6 +84,7 @@ describe('makeBoss', () => {
     expect(b.canShoot).toBe(true);
     expect(b.canBlock).toBe(true);
     expect(b.guardHP).toBe(5);
+    expect(b.meleeArc).toBeGreaterThan(1);
   });
 
   it('boss starts in chase state', () => {
@@ -99,7 +99,7 @@ describe('spawnEnemy', () => {
     expect(e.x).toBe(100);
     expect(e.y).toBe(100);
     expect(e.hp).toBeGreaterThan(0);
-    expect(['basic', 'charger', 'sniper', 'splitter', 'elite']).toContain(e.tier);
+    expect(['basic', 'charger', 'sniper', 'elite']).toContain(e.tier);
   });
 
   it('only produces basic enemies on floor 1', () => {

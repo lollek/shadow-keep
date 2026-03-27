@@ -9,6 +9,7 @@ import { writeSv } from './save';
 import { mkEnemy } from './enemies';
 import { burst, emitNoise, spawnDmg } from './combat';
 import { onFloorExit } from './game-flow';
+import { vampireHeal, toughMul } from './player';
 import type { Particle, TileMap } from './types';
 
 function breakWallsInRadius(cx: number, cy: number, radius: number, map: TileMap): void {
@@ -278,7 +279,7 @@ export function updateDungeon(): void {
             shake(2);
             if (p.stamina <= 0) { setMsg('Guard broken!', 1500); p.invincible = 30; }
           } else {
-            const dmgMul2 = p.items.includes('tough') ? 0.8 : 1;
+            const dmgMul2 = toughMul(p);
             const meleeDmg = e.atk * dmgMul2;
             p.hp -= meleeDmg;
             spawnDmg(px, p.y, meleeDmg, '#ff3300');
@@ -387,7 +388,7 @@ export function updateDungeon(): void {
     } else {
       if (ov(pr, p) && p.invincible <= 0) {
         if (p.dodgeT > 0) return false;
-        const dmgMul = p.items.includes('tough') ? 0.8 : 1;
+        const dmgMul = toughMul(p);
         if (p.blocking && p.stamina > 0) {
           p.stamina = Math.max(0, p.stamina - pr.dmg * 0.5);
           burst(pr.x, pr.y, '#4488ff', 4, 2); snd('hit'); shake(3);
@@ -422,7 +423,8 @@ export function updateDungeon(): void {
     const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
     const g = (e.tier === 'boss' ? 40 : e.tier === 'elite' ? 12 : e.tier === 'splitter' ? 7 : 3) + G.goldBonus;
     S.gold += g; sv.gold = S.gold;
-    if (p.items.includes('vampire')) p.hp = Math.min(p.hp + 3, p.maxHp);
+    const vheal = vampireHeal(p);
+    if (vheal > 0) p.hp = Math.min(p.hp + vheal, p.maxHp);
     burst(ecx, ecy, e.tier === 'boss' ? '#ff2200' : e.tier === 'elite' ? '#aa44ff' : '#ffd700', e.tier === 'boss' ? 18 : 8, 3);
     snd('die');
     if (e.tier === 'boss') shake(12);

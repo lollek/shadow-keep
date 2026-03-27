@@ -4,6 +4,7 @@ import { T, UI_HEIGHT, TILE_BREAKABLE, TILE_FLOOR, ACTIVE_ITEMS } from './consta
 import { snd } from './audio';
 import { setMsg, updateHUD } from './ui';
 import { moveEntity, ov } from './collision';
+import { vampireHeal } from './player';
 
 export function burst(x: number, y: number, col: string, n: number, sp = 3): void {
   const G = store.G!;
@@ -91,7 +92,8 @@ export function doMelee(): void {
     e.aiState = 'chase'; e.searchX = px; e.searchY = py; e._noiseCue = false;
     e.atkState = 'idle'; e.atkT = 30;
     burst(ecx, ecy, '#ff4444', 5); hit = true;
-    if (p.items.includes('vampire')) p.hp = Math.min(p.hp + 3, p.maxHp);
+    const vheal = vampireHeal(p);
+    if (vheal > 0) p.hp = Math.min(p.hp + vheal, p.maxHp);
 
     G.enemies.forEach(n => {
       if (n !== e && Math.hypot((n.x + n.w / 2) - ecx, (n.y + n.h / 2) - ecy) < T * 6) {

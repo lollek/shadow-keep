@@ -81,8 +81,8 @@ export const SA: ShopItem[] = [
   { n: 'Healing Herb', i: '🌿', d: 'Full heal', c: 35, r: 'common', a: (p: Player) => { p.hp = p.maxHp; } },
   { n: 'Spirit Jade', i: '💎', d: '+40 max HP', c: 50, r: 'rare', a: (p: Player) => { p.maxHp += 40; p.hp = Math.min(p.hp + 40, p.maxHp); } },
   { n: "Oni's Heart", i: '❤️', d: '+80 max HP + heal', c: 110, r: 'epic', a: (p: Player) => { p.maxHp += 80; p.hp = p.maxHp; } },
-  { n: 'Vampire Fang', i: '🩸', d: 'Heal 3/kill', c: 60, r: 'rare', a: (p: Player) => { p.items.push('vampire'); } },
-  { n: 'Iron Lamellar', i: '🛡', d: 'Take 20% less dmg', c: 80, r: 'epic', a: (p: Player) => { p.items.push('tough'); } },
+  { n: 'Vampire Fang', i: '🩸', d: 'Heal +3/kill (stacks)', c: 60, r: 'rare', a: (p: Player) => { p.items.push('vampire'); } },
+  { n: 'Iron Lamellar', i: '🛡', d: '-20% dmg taken (stacks)', c: 80, r: 'epic', a: (p: Player) => { p.items.push('tough'); } },
 ];
 
 export const SF: ShopItem[] = [

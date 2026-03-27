@@ -36,21 +36,51 @@ export function drawPlayer(p: Player, wAng: number, flash: boolean): void {
 
   ctx.save(); ctx.translate(cx, cy); ctx.rotate(wAng);
   if (p.blocking) {
-    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(5, -9, 12, 18);
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
-    for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(5 + i * 2, -9); ctx.lineTo(5 + i * 2, 9); ctx.stroke(); }
-    ctx.fillStyle = '#cc0000'; ctx.fillRect(5, -9, 2, 18);
+    // Katana-forward guard pose (replaces shield visual)
+    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(6, -2, 8, 4); // tsuka
+    ctx.fillStyle = '#b08d57';
+    ctx.beginPath(); ctx.arc(15, 0, 3, 0, Math.PI * 2); ctx.fill(); // tsuba
+    ctx.fillStyle = '#d8dde8';
+    ctx.beginPath();
+    ctx.moveTo(16, -2);
+    ctx.quadraticCurveTo(27, -5, 40, -1);
+    ctx.lineTo(40, 1.5);
+    ctx.quadraticCurveTo(27, 4, 16, 1.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#f1f5ff'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(18, -0.2); ctx.quadraticCurveTo(28, -2.2, 38, -0.2); ctx.stroke();
     if (p.parryWindow > 0) {
       ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 50) * 0.4;
-      ctx.fillStyle = '#ffd700'; ctx.fillRect(5, -9, 12, 18);
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.moveTo(16, -3);
+      ctx.quadraticCurveTo(28, -7, 41, -1.5);
+      ctx.lineTo(41, 2.5);
+      ctx.quadraticCurveTo(28, 6, 16, 2);
+      ctx.closePath();
+      ctx.fill();
       ctx.globalAlpha = 1;
     }
   } else {
-    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(5, -2, 9, 4);
-    ctx.fillStyle = '#cc8800'; ctx.fillRect(13, -4, 2, 8);
-    ctx.fillStyle = '#ddddee'; ctx.fillRect(15, -1.5, 20, 3);
-    ctx.fillStyle = '#eeeeff'; ctx.fillRect(15, -0.8, 20, 1.5);
-    ctx.fillStyle = '#888877'; ctx.fillRect(5, -1, 8, 2);
+    // Sheathed katana at hip when not actively guarding
+    ctx.fillStyle = '#171717'; ctx.fillRect(4, -2, 9, 4); // tsuka
+    ctx.fillStyle = '#9b7b4a';
+    for (let i = 0; i < 3; i++) {
+      ctx.fillRect(5 + i * 3, -2, 1, 4); // tsuka wrap accents
+    }
+    ctx.fillStyle = '#b08d57';
+    ctx.beginPath(); ctx.arc(14, 0, 2.5, 0, Math.PI * 2); ctx.fill(); // tsuba
+    ctx.fillStyle = '#2a2240';
+    ctx.beginPath();
+    ctx.moveTo(15, -2);
+    ctx.quadraticCurveTo(25, -4, 34, -1.2);
+    ctx.lineTo(34, 1.2);
+    ctx.quadraticCurveTo(25, 3.5, 15, 2);
+    ctx.closePath();
+    ctx.fill(); // saya
+    ctx.strokeStyle = '#5d4b7a'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(16, 0); ctx.quadraticCurveTo(24, -1.5, 32, 0); ctx.stroke();
   }
   ctx.restore();
 }

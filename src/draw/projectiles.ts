@@ -17,9 +17,22 @@ export function drawProjectile(pr: Projectile): void {
       ctx.fillStyle = '#ff8800';
       ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
     } else {
-      ctx.fillStyle = '#996633'; ctx.fillRect(-6, -1, 12, 2);
-      ctx.fillStyle = '#aaaaaa';
-      ctx.beginPath(); ctx.moveTo(6, -2); ctx.lineTo(10, 0); ctx.lineTo(6, 2); ctx.closePath(); ctx.fill();
+      // Shuriken projectile
+      ctx.fillStyle = '#c7ced8';
+      const r1 = 7, r2 = 2.2;
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4;
+        const r = i % 2 === 0 ? r1 : r2;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#4e5562';
+      ctx.beginPath(); ctx.arc(0, 0, 1.5, 0, Math.PI * 2); ctx.fill();
     }
   } else {
     if (pr.boss) {

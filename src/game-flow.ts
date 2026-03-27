@@ -143,6 +143,7 @@ function initBossFloor(floor: number): void {
 }
 
 export function onFloorExit(): void {
+  if (store.fadeDir !== 0) return;
   const G = store.G!;
   snd('exit');
   if (G.floor % 5 === 0) {

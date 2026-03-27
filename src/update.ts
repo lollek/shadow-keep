@@ -70,7 +70,14 @@ export function updateDungeon(): void {
   const ptx = Math.floor((p.x + p.w / 2) / T), pty = Math.floor((p.y + p.h / 2) / T);
   if (ptx >= 0 && ptx < map[0].length && pty >= 0 && pty < map.length) {
     const currentTile = map[pty][ptx];
-    if (currentTile === TILE_EXIT) { onFloorExit(); return; }
+    if (currentTile === TILE_EXIT) {
+      if (G.mode === 'boss' && !G.bossDefeated) {
+        setMsg('Defeat the boss first!', 900);
+      } else {
+        onFloorExit();
+        return;
+      }
+    }
 
     // Chest pickup
     if (currentTile === TILE_CHEST) {
@@ -428,7 +435,11 @@ export function updateDungeon(): void {
     if (vheal > 0) p.hp = Math.min(p.hp + vheal, p.maxHp);
     burst(ecx, ecy, e.tier === 'boss' ? '#ff2200' : e.tier === 'elite' ? '#aa44ff' : '#ffd700', e.tier === 'boss' ? 18 : 8, 3);
     snd('die');
-    if (e.tier === 'boss') shake(12);
+    if (e.tier === 'boss') {
+      G.bossDefeated = true;
+      shake(12);
+      setMsg('Boss defeated! The exit opens.', 1800);
+    }
     if (e.tier === 'splitter' && !e._split) {
       e._split = true;
       G.enemies.push(mkEnemy('minion', ecx - 10, ecy, G.floor));

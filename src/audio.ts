@@ -84,6 +84,7 @@ export function startMusic(themeName: string): void {
   if (!m) return;
   try {
     const a = getAC();
+    if (a.state === 'suspended') void a.resume();
     _musicGain = a.createGain();
     _musicGain.gain.value = m.vol;
     _musicGain.connect(a.destination);
@@ -100,7 +101,7 @@ export function startMusic(themeName: string): void {
       o.connect(g); g.connect(_musicGain);
       o.type = m.wave;
       o.frequency.setValueAtTime(freq, t);
-      g.gain.setValueAtTime(m.vol, t);
+      g.gain.setValueAtTime(1, t);
       g.gain.exponentialRampToValueAtTime(0.001, t + m.tempo / 1000 * 0.9);
       o.start(t); o.stop(t + m.tempo / 1000);
 
@@ -112,7 +113,7 @@ export function startMusic(themeName: string): void {
         ob.type = 'sine';
         ob.frequency.setValueAtTime(m.bass, t);
         const dur = m.tempo / 1000 * 3.5;
-        gb.gain.setValueAtTime(m.vol * 0.7, t);
+        gb.gain.setValueAtTime(0.7, t);
         gb.gain.exponentialRampToValueAtTime(0.001, t + dur);
         ob.start(t); ob.stop(t + dur);
       }

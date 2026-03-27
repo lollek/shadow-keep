@@ -1,6 +1,6 @@
 import type { Particle } from './types';
 import { store } from './state';
-import { T, UI_HEIGHT } from './constants';
+import { T, UI_HEIGHT, TILE_BREAKABLE, TILE_FLOOR } from './constants';
 import { snd } from './audio';
 import { setMsg, updateHUD } from './ui';
 
@@ -109,6 +109,18 @@ export function doMelee(): void {
     reflected = true;
   });
   if (reflected) setMsg('Reflected!', 1000);
+
+  // Break breakable walls in melee direction
+  for (let d = 1; d <= 3; d++) {
+    const btx = Math.floor((px + Math.cos(ang) * T * d) / T);
+    const bty = Math.floor((py + Math.sin(ang) * T * d) / T);
+    if (bty >= 0 && bty < G.map.length && btx >= 0 && btx < G.map[0].length && G.map[bty][btx] === TILE_BREAKABLE) {
+      G.map[bty][btx] = TILE_FLOOR;
+      burst(btx * T + T / 2, bty * T + T / 2, '#886644', 10, 4);
+      snd('hit');
+      break;
+    }
+  }
 }
 
 export function doShoot(): void {

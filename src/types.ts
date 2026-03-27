@@ -4,6 +4,18 @@ export type AIState = 'patrol' | 'suspect' | 'chase' | 'search';
 export type AttackState = 'idle' | 'windup' | 'strike' | 'recovery';
 export type DungeonMode = 'explore' | 'boss';
 export type ItemId = 'vampire' | 'tough' | 'explosive' | 'fastarrows';
+
+/** Tile values: 0=wall, 1=floor, 2=exit, 3=chest, 4=water, 5=spikes, 6=breakable wall */
+export type TileValue = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface FloorTheme {
+  name: string;
+  floorCols: string[];
+  wallCols: string[];
+  waterCol: string;
+  spikeCol: string;
+  ambientTint: string;
+}
 export type SoundType =
   | 'melee' | 'shoot' | 'hit' | 'hurt' | 'die'
   | 'clear' | 'loot' | 'boss' | 'explode' | 'buy' | 'town' | 'exit';
@@ -100,6 +112,8 @@ export interface DungeonState {
   rmb: boolean;
   isSneaking: boolean;
   bossDefeated: boolean;
+  spikeCd: number;
+  theme: FloorTheme;
 }
 
 export interface GameState {

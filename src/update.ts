@@ -1,5 +1,5 @@
 import { S, sv, store, shake } from './state';
-import { T } from './constants';
+import { T, TILE_EXIT, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_FLOOR, TILE_BREAKABLE } from './constants';
 import { moveEntity, tileCollide, ov, separateEntities } from './collision';
 import { updateFog, hasLOS } from './fog';
 import { updateCamera } from './camera';
@@ -9,7 +9,20 @@ import { writeSv } from './save';
 import { mkEnemy } from './enemies';
 import { burst, emitNoise } from './combat';
 import { onFloorExit } from './game-flow';
-import type { Particle } from './types';
+import type { Particle, TileMap } from './types';
+
+function breakWallsInRadius(cx: number, cy: number, radius: number, map: TileMap): void {
+  const tx0 = Math.floor((cx - radius * T) / T);
+  const ty0 = Math.floor((cy - radius * T) / T);
+  const tx1 = Math.floor((cx + radius * T) / T);
+  const ty1 = Math.floor((cy + radius * T) / T);
+  for (let ty = ty0; ty <= ty1; ty++) {
+    for (let tx = tx0; tx <= tx1; tx++) {
+      if (ty < 0 || ty >= map.length || tx < 0 || tx >= map[0].length) continue;
+      if (map[ty][tx] === TILE_BREAKABLE) map[ty][tx] = TILE_FLOOR;
+    }
+  }
+}
 
 export function updateDungeon(): void {
   const G = store.G;
@@ -35,7 +48,10 @@ export function updateDungeon(): void {
     p.dodgeT--;
     moveEntity(p, p.dodgeDx * p.spd * 2.2, p.dodgeDy * p.spd * 2.2, map);
   } else {
-    const moveSpd = p.blocking ? p.spd * 0.3 : isSneaking ? p.spd * 0.45 : p.spd;
+    // Water tile slows movement to 50%
+    const onWater = map[Math.floor((p.y + p.h / 2) / T)]?.[Math.floor((p.x + p.w / 2) / T)] === TILE_WATER;
+    const waterMul = onWater ? 0.5 : 1;
+    const moveSpd = (p.blocking ? p.spd * 0.3 : isSneaking ? p.spd * 0.45 : p.spd) * waterMul;
     if (dx || dy) { const l = Math.hypot(dx, dy); moveEntity(p, dx / l * moveSpd, dy / l * moveSpd, map); }
   }
   if (p.dodgeCd > 0) p.dodgeCd--;
@@ -50,9 +66,43 @@ export function updateDungeon(): void {
   updateFog();
 
   const ptx = Math.floor((p.x + p.w / 2) / T), pty = Math.floor((p.y + p.h / 2) / T);
-  if (ptx >= 0 && ptx < map[0].length && pty >= 0 && pty < map.length && map[pty][ptx] === 2) {
-    onFloorExit(); return;
+  if (ptx >= 0 && ptx < map[0].length && pty >= 0 && pty < map.length) {
+    const currentTile = map[pty][ptx];
+    if (currentTile === TILE_EXIT) { onFloorExit(); return; }
+
+    // Chest pickup
+    if (currentTile === TILE_CHEST) {
+      map[pty][ptx] = TILE_FLOOR;
+      snd('loot');
+      const roll = Math.random();
+      if (roll < 0.5) {
+        const g = 5 + Math.floor(Math.random() * 10) + G.floor;
+        S.gold += g; sv.gold = S.gold;
+        setMsg('Chest: +' + g + ' gold!', 1500);
+      } else if (roll < 0.8) {
+        const a = 5 + Math.floor(Math.random() * 10);
+        p.arrows += a;
+        setMsg('Chest: +' + a + ' arrows!', 1500);
+      } else {
+        const h = 10 + Math.floor(Math.random() * 15);
+        p.hp = Math.min(p.hp + h, p.maxHp);
+        setMsg('Chest: +' + h + ' HP!', 1500);
+      }
+      updateHUD();
+    }
+
+    // Spike damage (once per ~60 frames via spikeCd)
+    if (currentTile === TILE_SPIKES && G.spikeCd <= 0 && p.invincible <= 0) {
+      const dmg = 5 + G.floor;
+      p.hp -= dmg;
+      p.invincible = 10;
+      G.spikeCd = 50;
+      snd('hurt'); shake(3);
+      burst(p.x + p.w / 2, p.y + p.h / 2, '#ff4444', 4, 2);
+      setMsg('Spike trap! -' + dmg + ' HP', 1000);
+    }
   }
+  if (G.spikeCd > 0) G.spikeCd--;
 
   const px = p.x + p.w / 2, py = p.y + p.h / 2;
   const playerDetectRange = isSneaking ? T * 4 : T * 7;
@@ -306,6 +356,7 @@ export function updateDungeon(): void {
         if (pr.explosive) {
           snd('explode'); burst(pr.x, pr.y, '#ff8800', 14, 5);
           G.enemies.forEach(e2 => { if (Math.hypot((e2.x + e2.w / 2) - pr.x, (e2.y + e2.h / 2) - pr.y) < T * 3) e2.hp -= pr.dmg * 0.5; });
+          breakWallsInRadius(pr.x, pr.y, 3, map);
         }
       } else if (pr.owner === 'enemy' || pr.reflected) {
         emitNoise(pr.x, pr.y, 3, true);
@@ -321,6 +372,7 @@ export function updateDungeon(): void {
           if (pr.explosive) {
             snd('explode'); burst(pr.x, pr.y, '#ff8800', 12, 4);
             G.enemies.forEach(e3 => { if (Math.hypot((e3.x + e3.w / 2) - pr.x, (e3.y + e3.h / 2) - pr.y) < T * 3) e3.hp -= pr.dmg * 0.5; });
+            breakWallsInRadius(pr.x, pr.y, 3, map);
           } else {
             burst(pr.x, pr.y, pr.reflected ? '#ffd700' : '#ffcc00', 5, 2);
           }

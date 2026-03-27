@@ -1,5 +1,5 @@
 import { S, sv, store } from './state';
-import { T } from './constants';
+import { T, getTheme } from './constants';
 import { snd } from './audio';
 import { setMsg, updateHUD, hideAll, showPanel } from './ui';
 import { writeSv } from './save';
@@ -50,6 +50,7 @@ function initDungeonFloor(floor: number): void {
     });
   });
 
+  const theme = getTheme(floor);
   store.G = {
     mode: 'explore', floor, map, rooms, startRoom, exitRoom,
     player: p, enemies, projectiles: [], particles: [],
@@ -62,9 +63,11 @@ function initDungeonFloor(floor: number): void {
     rmb: false,
     isSneaking: false,
     bossDefeated: false,
+    spikeCd: 0,
+    theme,
   };
   updateCamera(); updateFog();
-  setMsg('Floor ' + floor + ' — find the exit staircase', 2500);
+  setMsg('Floor ' + floor + ' — ' + theme.name, 2500);
   document.getElementById('ctrl')!.textContent = 'WASD · Click=Melee · E=Shoot · M=Map';
   updateHUD();
 }
@@ -112,6 +115,8 @@ function initBossFloor(floor: number): void {
     rmb: false,
     isSneaking: false,
     bossDefeated: false,
+    spikeCd: 0,
+    theme: getTheme(floor),
   };
   updateCamera();
   snd('boss'); setMsg('★ BOSS FLOOR ' + floor + ' ★', 3000);

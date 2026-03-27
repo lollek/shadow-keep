@@ -1,5 +1,5 @@
 import type { Rect, TileMap } from './types';
-import { T } from './constants';
+import { T, TILE_WALL, TILE_BREAKABLE } from './constants';
 
 export function ov(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -44,7 +44,8 @@ export function tileCollide(rect: Rect, map: TileMap): boolean {
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
       if (ty < 0 || ty >= map.length || tx < 0 || tx >= map[0].length) return true;
-      if (map[ty][tx] === 0) return true;
+      const v = map[ty][tx];
+      if (v === TILE_WALL || v === TILE_BREAKABLE) return true;
     }
   }
   return false;

@@ -1,5 +1,5 @@
 import type { Room, TileMap } from './types';
-import { MAP_W, MAP_H } from './constants';
+import { MAP_W, MAP_H, TILE_FLOOR, TILE_EXIT, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_BREAKABLE } from './constants';
 
 export interface MapGenResult {
   map: TileMap;
@@ -52,7 +52,20 @@ export function generateMap(floor: number): MapGenResult {
   const startRoom = rooms[0];
   const exitRoom = farthestRoom(rooms, startRoom, map);
 
-  map[exitRoom.cy][exitRoom.cx] = 2;
+  map[exitRoom.cy][exitRoom.cx] = TILE_EXIT;
+
+  // Place loot chests in some non-start, non-exit rooms
+  for (const r of rooms) {
+    if (r === startRoom || r === exitRoom) continue;
+    if (Math.random() < 0.4) {
+      const cx = r.x + 1 + Math.floor(Math.random() * (r.w - 2));
+      const cy = r.y + 1 + Math.floor(Math.random() * (r.h - 2));
+      if (map[cy][cx] === TILE_FLOOR) map[cy][cx] = TILE_CHEST;
+    }
+  }
+
+  // Place environmental tiles based on floor depth
+  placeEnvironment(map, rooms, startRoom, exitRoom, floor);
 
   return { map, rooms, startRoom, exitRoom };
 }
@@ -63,7 +76,7 @@ export function carve(x1: number, y1: number, x2: number, y2: number, map: TileM
     for (let oy = -1; oy <= 1; oy++)
       for (let ox = -1; ox <= 1; ox++) {
         const tx = x + ox, ty = y + oy;
-        if (tx >= 0 && tx < MAP_W && ty >= 0 && ty < MAP_H) map[ty][tx] = 1;
+        if (tx >= 0 && tx < MAP_W && ty >= 0 && ty < MAP_H) map[ty][tx] = TILE_FLOOR;
       }
   }
   let x = x1, y = y1;
@@ -93,4 +106,55 @@ export function farthestRoom(rooms: Room[], startRoom: Room, map: TileMap): Room
     if (d > bestD) { bestD = d; best = r; }
   }
   return best || rooms[rooms.length - 1];
+}
+
+function placeEnvironment(map: TileMap, rooms: Room[], startRoom: Room, exitRoom: Room, floor: number): void {
+  // Water pools — shallow pools in some rooms (more common in caves)
+  const waterChance = floor >= 5 ? 0.35 : 0.15;
+  for (const r of rooms) {
+    if (r === startRoom) continue;
+    if (Math.random() > waterChance) continue;
+    // Place a small water patch (2x2 to 3x3) inside the room
+    const wx = r.x + 1 + Math.floor(Math.random() * Math.max(1, r.w - 4));
+    const wy = r.y + 1 + Math.floor(Math.random() * Math.max(1, r.h - 4));
+    const ww = 2 + Math.floor(Math.random() * 2);
+    const wh = 2 + Math.floor(Math.random() * 2);
+    for (let ty = wy; ty < wy + wh && ty < r.y + r.h - 1; ty++)
+      for (let tx = wx; tx < wx + ww && tx < r.x + r.w - 1; tx++)
+        if (map[ty][tx] === TILE_FLOOR) map[ty][tx] = TILE_WATER;
+  }
+
+  // Spike traps — appear from floor 3+
+  if (floor >= 3) {
+    const spikeChance = floor >= 10 ? 0.3 : 0.18;
+    for (const r of rooms) {
+      if (r === startRoom || r === exitRoom) continue;
+      if (Math.random() > spikeChance) continue;
+      // Place 1-3 spike tiles scattered in the room
+      const count = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        const sx = r.x + 1 + Math.floor(Math.random() * (r.w - 2));
+        const sy = r.y + 1 + Math.floor(Math.random() * (r.h - 2));
+        if (map[sy][sx] === TILE_FLOOR) map[sy][sx] = TILE_SPIKES;
+      }
+    }
+  }
+
+  // Breakable walls — occasional wall tiles adjacent to rooms that can be broken
+  if (floor >= 2) {
+    for (const r of rooms) {
+      if (r === startRoom) continue;
+      if (Math.random() > 0.25) continue;
+      // Pick a random wall edge of the room and place a breakable wall
+      const side = Math.floor(Math.random() * 4);
+      let bx: number, by: number;
+      if (side === 0) { bx = r.x - 1; by = r.y + 1 + Math.floor(Math.random() * (r.h - 2)); }       // left
+      else if (side === 1) { bx = r.x + r.w; by = r.y + 1 + Math.floor(Math.random() * (r.h - 2)); } // right
+      else if (side === 2) { bx = r.x + 1 + Math.floor(Math.random() * (r.w - 2)); by = r.y - 1; }   // top
+      else { bx = r.x + 1 + Math.floor(Math.random() * (r.w - 2)); by = r.y + r.h; }                  // bottom
+      if (bx > 0 && bx < MAP_W - 1 && by > 0 && by < MAP_H - 1 && map[by][bx] === 0) {
+        map[by][bx] = TILE_BREAKABLE;
+      }
+    }
+  }
 }

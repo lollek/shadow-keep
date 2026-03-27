@@ -78,10 +78,16 @@ export function openShop(title: string, sub: string, items: ShopItem[]): void {
   const grid = document.getElementById('shopGrid')!;
   grid.innerHTML = '';
   items.forEach(item => {
-    const ok = S.gold >= item.c;
+    const locked = (item.r === 'rare' && sv.deepest < 5) || (item.r === 'epic' && sv.deepest < 10);
+    const ok = !locked && S.gold >= item.c;
     const c = document.createElement('div');
     c.className = 'sc r-' + item.r + (ok ? '' : ' cant');
-    c.innerHTML = `<div class="sc-icon">${item.i}</div><div class="sc-name">${item.n}</div><div class="sc-desc">${item.d}</div><div class="sc-cost">${ok ? item.c + ' gold' : '🔒 ' + item.c + ' gold'}</div>`;
+    if (locked) {
+      const req = item.r === 'epic' ? 10 : 5;
+      c.innerHTML = `<div class="sc-icon">🔒</div><div class="sc-name">${item.n}</div><div class="sc-desc" style="color:#666">Reach floor ${req}</div><div class="sc-cost" style="color:#555">Locked</div>`;
+    } else {
+      c.innerHTML = `<div class="sc-icon">${item.i}</div><div class="sc-name">${item.n}</div><div class="sc-desc">${item.d}</div><div class="sc-cost">${ok ? item.c + ' gold' : '🔒 ' + item.c + ' gold'}</div>`;
+    }
     if (ok) c.onclick = () => {
       S.gold -= item.c; sv.gold = S.gold; writeSv();
       item.a(S.player!); snd('buy');

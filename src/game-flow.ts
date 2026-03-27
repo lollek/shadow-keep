@@ -13,6 +13,7 @@ import type { DungeonState, Room } from './types';
 export function startDescent(): void {
   if (!S.player) return;
   S.depth = 0; S.gold = sv.gold;
+  S.run = { kills: 0, goldEarned: 0, startTime: Date.now() };
   nextFloor();
 }
 

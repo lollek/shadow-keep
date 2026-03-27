@@ -423,6 +423,7 @@ export function updateDungeon(): void {
     const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
     const g = (e.tier === 'boss' ? 40 : e.tier === 'elite' ? 12 : e.tier === 'splitter' ? 7 : 3) + G.goldBonus;
     S.gold += g; sv.gold = S.gold;
+    S.run.kills++; S.run.goldEarned += g;
     const vheal = vampireHeal(p);
     if (vheal > 0) p.hp = Math.min(p.hp + vheal, p.maxHp);
     burst(ecx, ecy, e.tier === 'boss' ? '#ff2200' : e.tier === 'elite' ? '#aa44ff' : '#ffd700', e.tier === 'boss' ? 18 : 8, 3);
@@ -469,8 +470,21 @@ export function updateDungeon(): void {
 
   if (p.hp <= 0) {
     p.hp = 0; S.mode = 'dead'; sv.gold = S.gold; writeSv();
+    const elapsed = Date.now() - S.run.startTime;
+    const mins = Math.floor(elapsed / 60000);
+    const secs = Math.floor((elapsed % 60000) / 1000);
+    const isNewBest = G.floor > sv.bestFloor;
+    if (G.floor > sv.bestFloor) sv.bestFloor = G.floor;
+    if (S.run.kills > sv.bestKills) sv.bestKills = S.run.kills;
+    if (S.run.goldEarned > sv.bestGold) sv.bestGold = S.run.goldEarned;
+    writeSv();
     document.getElementById('deathMsg')!.innerHTML =
-      `Reached floor <b style="color:#fff">${G.floor}</b> &nbsp;·&nbsp; Gold: <b style="color:#ffd700">${S.gold}</b><br><br>Gold is kept. Return to town.`;
+      `<div style="text-align:left;display:inline-block;line-height:1.8">` +
+      `⚔ Floor reached: <b style="color:#fff">${G.floor}</b>${isNewBest ? ' <span style="color:#ffd700">★ NEW BEST</span>' : ''}<br>` +
+      `💀 Enemies slain: <b style="color:#fff">${S.run.kills}</b><br>` +
+      `💰 Gold earned: <b style="color:#ffd700">${S.run.goldEarned}</b><br>` +
+      `⏱ Time: <b style="color:#fff">${mins}m ${secs}s</b>` +
+      `</div><br><br>Gold is kept. Return to town.`;
     showPanel('deathPanel'); updateHUD();
   }
 

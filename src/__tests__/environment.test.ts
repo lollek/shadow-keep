@@ -163,7 +163,7 @@ describe('Shrine shop', () => {
   });
 
   it('active item purchases set activeItem on player', () => {
-    const p = makePlayer(100, 100);
+    const p = makePlayer();
     SS[0].a(p); // smoke
     expect(p.activeItem).toBe('smoke');
     SS[1].a(p); // dash
@@ -173,7 +173,7 @@ describe('Shrine shop', () => {
   });
 
   it('passive item purchases stack in items array', () => {
-    const p = makePlayer(100, 100);
+    const p = makePlayer();
     SS[3].a(p); // vampire
     SS[3].a(p); // vampire again
     expect(p.items.filter((i: string) => i === 'vampire')).toHaveLength(2);

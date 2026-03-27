@@ -130,16 +130,26 @@ export interface DungeonState {
   theme: FloorTheme;
 }
 
+export interface RunStats {
+  kills: number;
+  goldEarned: number;
+  startTime: number;
+}
+
 export interface GameState {
   mode: GameMode;
   player: Player | null;
   depth: number;
   gold: number;
+  run: RunStats;
 }
 
 export interface SaveData {
   gold: number;
   deepest: number;
+  bestKills: number;
+  bestGold: number;
+  bestFloor: number;
 }
 
 export interface TownState {

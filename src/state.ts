@@ -1,7 +1,7 @@
 import type { DungeonState, GameState, SaveData, TownState } from './types';
 
-export const S: GameState = { mode: 'title', player: null, depth: 0, gold: 0 };
-export const sv: SaveData = { gold: 0, deepest: 0 };
+export const S: GameState = { mode: 'title', player: null, depth: 0, gold: 0, run: { kills: 0, goldEarned: 0, startTime: 0 } };
+export const sv: SaveData = { gold: 0, deepest: 0, bestKills: 0, bestGold: 0, bestFloor: 0 };
 
 export const store = {
   G: null as DungeonState | null,

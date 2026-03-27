@@ -53,6 +53,14 @@ export function getTheme(floor: number): FloorTheme {
   return THEMES[0];
 }
 
+export const SS: ShopItem[] = [
+  { n: 'Smoke Bomb', i: '💨', d: 'Active: break enemy LOS', c: 45, r: 'rare', a: (p: Player) => { p.activeItem = 'smoke'; p.activeCd = 0; } },
+  { n: 'Dash Strike', i: '⚡', d: 'Active: lunge for 2× dmg', c: 45, r: 'rare', a: (p: Player) => { p.activeItem = 'dash'; p.activeCd = 0; } },
+  { n: 'Caltrops', i: '🔩', d: 'Active: drop spike trap', c: 45, r: 'rare', a: (p: Player) => { p.activeItem = 'caltrops'; p.activeCd = 0; } },
+  { n: 'Vampire Fang', i: '🩸', d: 'Heal +3/kill (stacks)', c: 60, r: 'rare', a: (p: Player) => { p.items.push('vampire'); } },
+  { n: 'Iron Lamellar', i: '🛡', d: '-20% dmg taken (stacks)', c: 80, r: 'epic', a: (p: Player) => { p.items.push('tough'); } },
+];
+
 // Active item cooldowns (in frames, 60fps ≈ 16ms/frame)
 export const ACTIVE_ITEMS: Record<ActiveItemId, { name: string; icon: string; cd: number; desc: string }> = {
   smoke: { name: 'Smoke Bomb', icon: '💨', cd: 480, desc: 'Break enemy LOS in radius' },
@@ -61,9 +69,10 @@ export const ACTIVE_ITEMS: Record<ActiveItemId, { name: string; icon: string; cd
 };
 
 export const BLDGS: Building[] = [
-  { id: 'weapon', label: 'Swordsmith', color: '#2a1008', roof: '#6a2a10', icon: '⚔', x: 0.15, desc: 'Blades & speed' },
-  { id: 'apoth', label: 'Herbalist', color: '#0a1a0a', roof: '#1a5a1a', icon: '🌿', x: 0.38, desc: 'Healing & HP' },
-  { id: 'fletcher', label: 'Bowyer', color: '#0a1020', roof: '#1a3060', icon: '🏹', x: 0.62, desc: 'Arrows & bows' },
+  { id: 'weapon', label: 'Swordsmith', color: '#2a1008', roof: '#6a2a10', icon: '⚔', x: 0.12, desc: 'Blades & speed' },
+  { id: 'apoth', label: 'Herbalist', color: '#0a1a0a', roof: '#1a5a1a', icon: '🌿', x: 0.32, desc: 'Healing & HP' },
+  { id: 'fletcher', label: 'Bowyer', color: '#0a1020', roof: '#1a3060', icon: '🏹', x: 0.52, desc: 'Arrows & bows' },
+  { id: 'shrine', label: 'Shrine', color: '#1a0a20', roof: '#4a1a6a', icon: '⛩', x: 0.72, desc: 'Actives & upgrades' },
   { id: 'dungeon', label: 'Castle Gate', color: '#1a0808', roof: '#550000', icon: '⛩', x: 0.5, desc: 'Enter the keep', yMul: 0.78 },
 ];
 

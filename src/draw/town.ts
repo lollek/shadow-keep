@@ -1,4 +1,4 @@
-import { S, store } from '../state';
+import { S, sv, store } from '../state';
 import { ctx, canvas } from '../canvas';
 import { UI_HEIGHT } from '../constants';
 import { tvArea, bldgRects } from '../town';
@@ -45,6 +45,11 @@ export function drawTown(): void {
     ctx.fillText(label, bx + bw / 2, by + bh + 12);
     ctx.font = '8px monospace'; ctx.fillStyle = '#555';
     ctx.fillText(desc, bx + bw / 2, by + bh + 21);
+    if (b.id === 'shrine' && sv.deepest < 10) {
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(bx, by + 18, bw, bh - 18);
+      ctx.font = '10px monospace'; ctx.fillStyle = '#888'; ctx.textAlign = 'center';
+      ctx.fillText('🔒 Floor 10', bx + bw / 2, by + bh / 2 + 14);
+    }
   });
 
   // Player

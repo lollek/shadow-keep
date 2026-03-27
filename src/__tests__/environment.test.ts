@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { generateMap } from '../map-gen';
 import { tileCollide } from '../collision';
-import { getTheme, MAP_W, MAP_H, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_BREAKABLE, ACTIVE_ITEMS } from '../constants';
+import { getTheme, MAP_W, MAP_H, TILE_CHEST, TILE_WATER, TILE_SPIKES, TILE_BREAKABLE, ACTIVE_ITEMS, BLDGS, SS } from '../constants';
+import { makePlayer } from '../player';
 import type { TileMap } from '../types';
 
 describe('getTheme', () => {
@@ -141,5 +142,42 @@ describe('ACTIVE_ITEMS', () => {
   it('smoke bomb has the longest cooldown', () => {
     expect(ACTIVE_ITEMS.smoke.cd).toBeGreaterThan(ACTIVE_ITEMS.dash.cd);
     expect(ACTIVE_ITEMS.smoke.cd).toBeGreaterThan(ACTIVE_ITEMS.caltrops.cd);
+  });
+});
+
+describe('Shrine shop', () => {
+  it('BLDGS includes shrine building', () => {
+    const shrine = BLDGS.find(b => b.id === 'shrine');
+    expect(shrine).toBeDefined();
+    expect(shrine!.label).toBe('Shrine');
+  });
+
+  it('SS has 5 items with valid fields', () => {
+    expect(SS).toHaveLength(5);
+    for (const item of SS) {
+      expect(item.n).toBeTruthy();
+      expect(item.i).toBeTruthy();
+      expect(item.c).toBeGreaterThan(0);
+      expect(typeof item.a).toBe('function');
+    }
+  });
+
+  it('active item purchases set activeItem on player', () => {
+    const p = makePlayer(100, 100);
+    SS[0].a(p); // smoke
+    expect(p.activeItem).toBe('smoke');
+    SS[1].a(p); // dash
+    expect(p.activeItem).toBe('dash');
+    SS[2].a(p); // caltrops
+    expect(p.activeItem).toBe('caltrops');
+  });
+
+  it('passive item purchases stack in items array', () => {
+    const p = makePlayer(100, 100);
+    SS[3].a(p); // vampire
+    SS[3].a(p); // vampire again
+    expect(p.items.filter((i: string) => i === 'vampire')).toHaveLength(2);
+    SS[4].a(p); // tough
+    expect(p.items).toContain('tough');
   });
 });

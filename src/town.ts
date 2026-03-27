@@ -6,7 +6,7 @@ import { setMsg, tickMsg, updateHUD, hideAll, showPanel } from './ui';
 import { writeSv } from './save';
 import { startDescent } from './game-flow';
 import { makePlayer } from './player';
-import { BLDGS, SW, SA, SF } from './constants';
+import { BLDGS, SW, SA, SF, SS } from './constants';
 import type { BuildingRect, ShopItem } from './types';
 
 export function initTown(): void {
@@ -58,10 +58,15 @@ export function updateTown(): void {
 
 function enterBuilding(id: string): void {
   if (id === 'dungeon') { startDescent(); return; }
+  if (id === 'shrine' && sv.deepest < 10) {
+    setMsg('Reach floor 10 to unlock the Shrine');
+    return;
+  }
   const shops: Record<string, [string, string, ShopItem[]]> = {
     weapon: ['Swordsmith', 'Blades & Speed', SW],
     apoth: ['Herbalist', 'Healing & HP', SA],
     fletcher: ['Bowyer', 'Arrows & Ranged', SF],
+    shrine: ['Shrine', 'Actives & Upgrades', SS],
   };
   if (shops[id]) openShop(...shops[id]);
 }

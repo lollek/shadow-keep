@@ -6,51 +6,52 @@ function drawSheathedKatana(x: number, y: number, ang: number): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(ang);
-  ctx.fillStyle = '#141414'; ctx.fillRect(-8, -2.3, 11, 4.6);
+  ctx.fillStyle = '#141414'; ctx.fillRect(-4, -1.2, 5, 2.4);
   ctx.fillStyle = '#b59a6a';
-  for (let i = 0; i < 4; i++) ctx.fillRect(-7 + i * 3, -2.3, 1, 4.6);
+  for (let i = 0; i < 2; i++) ctx.fillRect(-3.2 + i * 2, -1.2, 0.8, 2.4);
   ctx.fillStyle = '#c8b07c';
-  ctx.beginPath(); ctx.arc(4, 0, 2.8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(1.5, 0, 1.4, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#231a34';
   ctx.beginPath();
-  ctx.moveTo(5, -2.4);
-  ctx.quadraticCurveTo(18, -5, 35, -1.8);
-  ctx.lineTo(35, 1.8);
-  ctx.quadraticCurveTo(18, 4.8, 5, 2.4);
+  ctx.moveTo(2.2, -1.15);
+  ctx.quadraticCurveTo(8, -3.1, 14.5, -1.4);
+  ctx.lineTo(14.5, 0.85);
+  ctx.quadraticCurveTo(8, 1.4, 2.2, 1.15);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = '#6e5b88'; ctx.lineWidth = 0.9;
-  ctx.beginPath(); ctx.moveTo(7, 0); ctx.quadraticCurveTo(18, -1.9, 32, 0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(3.2, -0.1); ctx.quadraticCurveTo(7.8, -1.5, 12.8, -0.2); ctx.stroke();
   ctx.restore();
 }
 
 function drawDrawnKatana(parryWindow: number, guarding: boolean): void {
-  ctx.fillStyle = '#151515'; ctx.fillRect(-5, -3, 11, 6);
+  ctx.fillStyle = '#151515'; ctx.fillRect(-3, -1.5, 5.5, 3);
   ctx.fillStyle = '#b59a6a';
-  for (let i = 0; i < 4; i++) ctx.fillRect(-4 + i * 3, -3, 1, 6);
+  for (let i = 0; i < 2; i++) ctx.fillRect(-2.2 + i * 1.8, -1.5, 0.8, 3);
   ctx.fillStyle = '#ccb684';
-  ctx.beginPath(); ctx.arc(7, 0, 3.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(3.1, 0, 1.6, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#d8dde8';
   ctx.beginPath();
-  ctx.moveTo(8, -2.4);
-  ctx.quadraticCurveTo(22, guarding ? -7 : -5.4, 42, guarding ? -2.8 : -0.8);
-  ctx.lineTo(42, guarding ? 1.6 : 1.2);
-  ctx.quadraticCurveTo(22, guarding ? 3 : 4.4, 8, 2.1);
+  ctx.moveTo(3.9, -0.9);
+  ctx.quadraticCurveTo(8.8, guarding ? -3.1 : -2.7, 15.5, guarding ? -1.35 : -0.75);
+  ctx.lineTo(17.2, guarding ? -0.05 : 0.02);
+  ctx.lineTo(15.5, guarding ? 0.62 : 0.54);
+  ctx.quadraticCurveTo(8.8, guarding ? 0.9 : 1.05, 3.9, 0.78);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = '#f7fbff'; ctx.lineWidth = 0.9;
-  ctx.beginPath(); ctx.moveTo(10, -0.5); ctx.quadraticCurveTo(23, guarding ? -3.1 : -2.4, 39, -0.6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(5, -0.2); ctx.quadraticCurveTo(9.6, guarding ? -1.45 : -1.2, 15, -0.45); ctx.stroke();
   ctx.strokeStyle = '#9ca5b5'; ctx.lineWidth = 0.7;
-  ctx.beginPath(); ctx.moveTo(40, -0.8); ctx.lineTo(43, 0.1); ctx.lineTo(40, 1.1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(15.4, -0.26); ctx.lineTo(17.2, -0.04); ctx.lineTo(15.4, 0.3); ctx.stroke();
   if (parryWindow > 0) {
     ctx.globalAlpha = 0.45 + Math.sin(Date.now() / 50) * 0.25;
     ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(8, -4.2); ctx.quadraticCurveTo(24, -10, 42, -2.2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, -2.1); ctx.quadraticCurveTo(10.2, -5.1, 16.8, -1.3); ctx.stroke();
     ctx.globalAlpha = 1;
   }
 }
 
-export function drawPlayer(p: Player, wAng: number, flash: boolean, drawn: boolean, faceRight: boolean): void {
+export function drawPlayer(p: Player, wAng: number, flash: boolean, swingT: number, faceRight: boolean): void {
   if (flash) return;
   const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
   const faceDir = faceRight ? 1 : -1;
@@ -88,18 +89,26 @@ export function drawPlayer(p: Player, wAng: number, flash: boolean, drawn: boole
 
   if (p.blocking) {
     ctx.save();
-    ctx.translate(cx + faceDir * 2, cy + 1);
-    ctx.rotate(wAng - 0.55);
+    ctx.translate(cx + faceDir * 7, cy + 0.5);
+    ctx.rotate(faceRight ? -1.6 : 1.6);
     drawDrawnKatana(p.parryWindow, true);
     ctx.restore();
-  } else if (drawn) {
+  } else if (swingT > 0) {
+    const swing = 1 - swingT / 10;
+    const sweepSide = faceRight ? -1 : 1;
+    const startAng = wAng + sweepSide * 0.55;
+    const endAng = wAng - sweepSide * 0.18;
+    const ang = startAng + (endAng - startAng) * swing;
+    const reach = 2.4 + swing * 1.2;
+    const vx = Math.cos(ang) * reach;
+    const vy = Math.sin(ang) * reach;
     ctx.save();
-    ctx.translate(cx + faceDir * 2, cy + 1);
-    ctx.rotate(wAng - 0.1);
+    ctx.translate(cx + vx, cy + vy);
+    ctx.rotate(ang);
     drawDrawnKatana(0, false);
     ctx.restore();
   } else {
-    drawSheathedKatana(cx - faceDir * 2, p.y + p.h - 7, faceRight ? 0.7 : 2.45);
+    drawSheathedKatana(cx - faceDir * 4.5, p.y + p.h - 6.2, faceRight ? 1.95 : 1.2);
   }
 }
 
@@ -120,5 +129,5 @@ export function drawTownPlayer(p: Player, faceRight: boolean): void {
   ctx.fillStyle = '#ddeeff';
   ctx.beginPath(); ctx.ellipse(cx + faceDir * 0.8, p.y + 5.5, 2.2, 1.25, 0, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.ellipse(cx + faceDir * 4.2, p.y + 5.5, 1.5, 1, 0, 0, Math.PI * 2); ctx.fill();
-  drawSheathedKatana(cx - faceDir * 2, p.y + p.h - 7, faceRight ? 0.7 : 2.45);
+  drawSheathedKatana(cx - faceDir * 4.5, p.y + p.h - 6.2, faceRight ? 1.95 : 1.2);
 }
